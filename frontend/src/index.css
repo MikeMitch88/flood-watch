@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base Styles - Professional Enterprise Theme */
+body {
+    @apply bg-navy-950 text-slate-200 font-sans antialiased;
+    background-color: #0f172a;
+    /* Fallback */
+    background-image:
+        radial-gradient(circle at 50% 0%, rgba(15, 118, 110, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.1) 0%, transparent 50%);
+    min-height: 100vh;
+}
+
+/* Professional Glassmorphism Utilities */
+@layer utilities {
+    .glass {
+        @apply bg-navy-900/60 backdrop-blur-md border border-white/10;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .glass-strong {
+        @apply bg-navy-800/80 backdrop-blur-xl border border-white/10;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.36);
+    }
+
+    .glass-card {
+        @apply bg-navy-800/40 backdrop-blur-md border border-white/5 transition-all duration-300;
+    }
+
+    .glass-card:hover {
+        @apply bg-navy-800/60 border-teal-500/30 shadow-lg shadow-teal-500/5 translate-y-[-2px];
+    }
+
+    .text-glow {
+        text-shadow: 0 0 20px rgba(20, 184, 166, 0.3);
+    }
+}
+
+/* Form Input Styles */
+@layer components {
+    .input-field {
+        @apply w-full px-4 py-3 rounded-xl bg-navy-900/50 border border-slate-700/50 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 focus:border-teal-500/50 transition-all;
+    }
+
+    /* Navigation Link Styles */
+    .nav-link {
+        @apply flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 hover:text-white transition-all font-medium;
+    }
+
+    .nav-link.active {
+        @apply bg-teal-500/10 text-teal-400 border-l-2 border-teal-500;
+    }
+
+    .btn-primary {
+        @apply px-6 py-3 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-medium shadow-lg shadow-teal-900/20 transition-all duration-200 transform hover:-translate-y-0.5;
+    }
+
+    .btn-secondary {
+        @apply px-6 py-3 rounded-lg border border-slate-600 hover:border-slate-400 text-slate-300 hover:text-white bg-transparent transition-all duration-200;
+    }
+}
+
+/* Animation Delay Utilities */
+@layer utilities {
+    .animation-delay-100 {
+        animation-delay: 100ms;
+    }
+
+    .animation-delay-200 {
+        animation-delay: 200ms;
+    }
+
+    .animation-delay-300 {
+        animation-delay: 300ms;
+    }
+
+    .animation-delay-400 {
+        animation-delay: 400ms;
+    }
+
+    .animation-delay-500 {
+        animation-delay: 500ms;
+    }
+
+    .animation-delay-700 {
+        animation-delay: 700ms;
+    }
+
+    .animation-delay-1000 {
+        animation-delay: 1000ms;
+    }
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-navy-950;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-slate-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-600;
+}
+
+/* Focus Visible */
+*:focus-visible {
+    @apply outline-none ring-2 ring-teal-500/50 ring-offset-2 ring-offset-navy-950;
+}

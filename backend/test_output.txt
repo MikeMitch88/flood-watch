@@ -1,0 +1,42 @@
+﻿.\venv\Scripts\python.exe : 
+Traceback (most recent call 
+last):
+At line:1 char:1
++ .\venv\Scripts\python.exe 
+test_supabase_connection.py 
+2>&1 | Out-File ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          :  
+   NotSpecified: (Traceback (  
+  most recent call last)::St   
+ ring) [], RemoteException
+    + FullyQualifiedErrorId :  
+   NativeCommandError
+ 
+  File "D:\MICHAEL_projects_BUC
+KUPS\flood-watch\backend\test_s
+upabase_connection.py", line 
+66, in <module>
+    success = test_connection()
+              ^^^^^^^^^^^^^^^^^
+  File "D:\MICHAEL_projects_BUC
+KUPS\flood-watch\backend\test_s
+upabase_connection.py", line 
+25, in test_connection
+    print(f"\U0001f4e1 Testing 
+connection to database...")
+  File "C:\Users\HP\AppData\Loc
+al\Programs\Python\Python312\Li
+b\encodings\cp1252.py", line 
+19, in encode
+    return codecs.charmap_encod
+e(input,self.errors,encoding_ta
+ble)[0]
+           ^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^
+UnicodeEncodeError: 'charmap' 
+codec can't encode character 
+'\U0001f4e1' in position 0: 
+character maps to <undefined>

@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with PostGIS (Optional - for local development)
+  # Use this if you want to develop locally without Supabase
+  # To enable: docker-compose --profile local-db up
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: floodwatch-postgres
+    profiles: ["local-db"]  # Optional: only starts when explicitly requested
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-floodwatch}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-floodwatch_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-floodwatch}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U floodwatch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: floodwatch-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: floodwatch-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: floodwatch-backend
+    environment:
+      # Change DATABASE_URL in .env to use Supabase
+      DATABASE_URL: postgresql://floodwatch:floodwatch_dev@postgres:5432/floodwatch
+      REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      # Note: postgres is optional - only required if using local DB
+      # If using Supabase, no postgres dependency needed
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend Dashboard
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: floodwatch-frontend
+    environment:
+      VITE_API_URL: http://localhost:8000
+      VITE_MAPBOX_TOKEN: ${MAPBOX_ACCESS_TOKEN}
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    command: npm run dev -- --host 0.0.0.0 --port 3000
+
+  # PgAdmin (Database Management) - Optional, for local PostgreSQL only
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: floodwatch-pgadmin
+    profiles: ["local-db"]  # Optional: only starts with local PostgreSQL
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@floodwatch.org
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  backend_uploads:
+  pgadmin_data:
+
+networks:
+  default:
+    name: floodwatch-network
