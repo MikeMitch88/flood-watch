@@ -5,6 +5,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { authAPI } from '../../api/client';
 import toast from 'react-hot-toast';
+import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 export const LoginPage: React.FC = () => {
     const navigate = useNavigate();
@@ -18,22 +19,44 @@ export const LoginPage: React.FC = () => {
         setIsLoading(true);
 
         try {
-            // Backend expects 'username', not 'email'
+            // Try Supabase authentication first (for regular users)
+            if (isSupabaseConfigured()) {
+                try {
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password,
+                    });
+
+                    if (!error && data?.user) {
+                        // Check if email is verified
+                        if (!data.user.email_confirmed_at) {
+                            toast.error('Please verify your email before logging in. Check your inbox for the verification link.');
+                            await supabase.auth.signOut();
+                            setIsLoading(false);
+                            return;
+                        }
+
+                        // Supabase login successful - regular user
+                        localStorage.setItem('supabase_session', JSON.stringify(data.session));
+                        toast.success('Login successful!');
+                        window.location.href = '/dashboard';
+                        return;
+                    }
+                } catch (supabaseError) {
+                    console.log('Supabase login failed, trying backend...', supabaseError);
+                }
+            }
+
+            // Fallback to backend API (for admin users or if Supabase fails)
             const response = await authAPI.login(email, password);
             const { access_token } = response.data;
 
-            // Store token in localStorage
             localStorage.setItem('token', access_token);
-
-            // Show success message
             toast.success('Login successful!');
-
-            // Redirect to admin dashboard
-            navigate('/admin/dashboard');
+            window.location.href = '/admin/dashboard';
         } catch (error: any) {
             console.error('Login failed:', error);
             toast.error(error.response?.data?.detail || 'Invalid username or password');
-        } finally {
             setIsLoading(false);
         }
     };

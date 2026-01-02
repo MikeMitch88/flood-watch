@@ -48,7 +48,7 @@ class IncidentService:
             setattr(incident, key, value)
         
         # If status changed to resolved, set resolved_at
-        if 'status' in update_data and update_data['status'] == IncidentStatus.RESOLVED:
+        if 'status' in update_data and update_data['status'] == IncidentStatus.resolved:
             incident.resolved_at = datetime.utcnow()
         
         db.commit()
@@ -166,7 +166,7 @@ class IncidentService:
                     Incident.id == incident_report.incident_id
                 ).first()
                 
-                if incident and incident.status == IncidentStatus.ACTIVE:
+                if incident and incident.status == IncidentStatus.active:
                     IncidentService.add_report_to_incident(db, incident.id, report.id)
                     return incident
         
@@ -178,7 +178,7 @@ class IncidentService:
     def get_active_incidents(db: Session, limit: int = 100) -> List[Incident]:
         """Get all active incidents"""
         return db.query(Incident).filter(
-            Incident.status == IncidentStatus.ACTIVE
+            Incident.status == IncidentStatus.active
         ).order_by(Incident.created_at.desc()).limit(limit).all()
     
     @staticmethod
@@ -193,7 +193,7 @@ class IncidentService:
         # Simplified bounding box query
         # In production, use ST_MakeEnvelope and ST_Intersects
         return db.query(Incident).filter(
-            Incident.status.in_([IncidentStatus.ACTIVE, IncidentStatus.MONITORING])
+            Incident.status.in_([IncidentStatus.active, IncidentStatus.monitoring])
         ).all()
     
     @staticmethod
@@ -203,7 +203,7 @@ class IncidentService:
         if not incident:
             return None
         
-        incident.status = IncidentStatus.RESOLVED
+        incident.status = IncidentStatus.resolved
         incident.resolved_at = datetime.utcnow()
         db.commit()
         db.refresh(incident)

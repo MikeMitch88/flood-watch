@@ -18,13 +18,34 @@ async def create_report(
     db: Session = Depends(get_db)
 ):
     """Submit a new flood report"""
-    # Verify user exists
+    # Check if user exists, if not create them (for Supabase users)
     user = UserService.get_user_by_id(db, report_data.user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+        # Auto-create user for Supabase users reporting incidents
+        try:
+            from app.models import User
+            from geoalchemy2 import WKTElement
+            
+            new_user = User(
+                id=report_data.user_id,
+                platform="web",
+                platform_id=report_data.user_id,
+                phone_number="web_user",  # Default for web users
+                language_code="en",
+                location=WKTElement(f'POINT({report_data.location["lon"]} {report_data.location["lat"]})', srid=4326) if report_data.location else None,
+                alert_subscribed=True,
+                alert_radius_km=10.0,
+                credibility_score=50.0  # Default credibility for new users
+            )
+            db.add(new_user)
+            db.commit()
+            db.refresh(new_user)
+            user = new_user
+            print(f"Auto-created user {report_data.user_id} from Supabase")
+        except Exception as e:
+            print(f"Error creating user: {e}")
+            # Continue anyway - allow anonymous reports
+            pass
     
     # Create report
     report = ReportService.create_report(db, report_data)
@@ -66,6 +87,23 @@ async def create_report(
         # Don't fail report creation if verification fails
     
     return report
+
+
+@router.get("/user/{user_id}", response_model=List[ReportResponse])
+async def get_user_reports(
+    user_id: str,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, le=500),
+    db: Session = Depends(get_db)
+):
+    """Get reports for a specific user (public endpoint)"""
+    reports = ReportService.get_reports(
+        db,
+        skip=skip,
+        limit=limit,
+        user_id=user_id
+    )
+    return reports
 
 
 @router.get("/", response_model=List[ReportResponse])

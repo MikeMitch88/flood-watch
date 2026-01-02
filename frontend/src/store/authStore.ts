@@ -21,7 +21,8 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
     user: null,
     token: localStorage.getItem('token'),
-    isAuthenticated: !!localStorage.getItem('token'),
+    // Check for both backend token and Supabase session
+    isAuthenticated: !!localStorage.getItem('token') || !!localStorage.getItem('supabase_session'),
     isLoading: false,
 
     login: async (username: string, password: string) => {
@@ -49,6 +50,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     logout: () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('supabase_session');
         set({
             user: null,
             token: null,
@@ -58,6 +60,28 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     checkAuth: async () => {
         const token = localStorage.getItem('token');
+        const supabaseSession = localStorage.getItem('supabase_session');
+
+        // If using Supabase, consider authenticated
+        if (supabaseSession) {
+            try {
+                const session = JSON.parse(supabaseSession);
+                set({
+                    isAuthenticated: true,
+                    user: session.user ? {
+                        id: session.user.id,
+                        username: session.user.email?.split('@')[0] || 'user',
+                        email: session.user.email || '',
+                        role: 'user',
+                    } : null,
+                });
+                return;
+            } catch (error) {
+                localStorage.removeItem('supabase_session');
+            }
+        }
+
+        // Fallback to backend token check
         if (!token) {
             set({ isAuthenticated: false });
             return;

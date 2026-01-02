@@ -40,7 +40,7 @@ async def get_public_statistics(db: Session = Depends(get_db)):
     total_reports = db.query(func.count(Report.id)).scalar() or 0
     total_incidents = db.query(func.count(Incident.id)).scalar() or 0
     active_incidents = db.query(func.count(Incident.id)).filter(
-        Incident.status == IncidentStatus.ACTIVE
+        Incident.status == IncidentStatus.active
     ).scalar() or 0
     total_users = db.query(func.count(User.id)).scalar() or 0
     

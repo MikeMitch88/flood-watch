@@ -1,7 +1,15 @@
-import React, { useState } from 'react';
-import { Search, Bell, User, ChevronDown, LogOut, Settings, Moon, Sun } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Bell, User, ChevronDown, LogOut, Settings, Moon, Sun, Check } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
+
+interface Notification {
+    id: number;
+    type: 'critical' | 'warning' | 'info';
+    message: string;
+    time: string;
+    read: boolean;
+}
 
 interface TopBarProps {
     className?: string;
@@ -14,18 +22,53 @@ export const TopBar: React.FC<TopBarProps> = ({ className = '' }) => {
     const { logout, user } = useAuthStore();
     const navigate = useNavigate();
 
+    // Load notifications from localStorage or use defaults
+    const [notifications, setNotifications] = useState<Notification[]>(() => {
+        const saved = localStorage.getItem('admin_notifications');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+        return [
+            { id: 1, type: 'critical', message: 'New critical incident in Nairobi Region', time: '2m ago', read: false },
+            { id: 2, type: 'warning', message: '15 pending reports require verification', time: '10m ago', read: false },
+            { id: 3, type: 'info', message: 'System update scheduled for tonight', time: '1h ago', read: false },
+            { id: 4, type: 'critical', message: '3 new high-severity reports submitted', time: '2h ago', read: false },
+            { id: 5, type: 'warning', message: 'Alert delivery rate below 90%', time: '3h ago', read: false },
+        ];
+    });
+
+    // Save notifications to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('admin_notifications', JSON.stringify(notifications));
+    }, [notifications]);
+
+    const unreadCount = notifications.filter(n => !n.read).length;
+
     const handleLogout = () => {
         logout();
         navigate('/login');
     };
 
-    const notifications = [
-        { id: 1, type: 'critical', message: 'New critical incident in Region 5', time: '2m ago' },
-        { id: 2, type: 'warning', message: '15 pending reports require verification', time: '10m ago' },
-        { id: 3, type: 'info', message: 'System update scheduled for tonight', time: '1h ago' },
-    ];
+    const markAsRead = (id: number) => {
+        setNotifications(prev =>
+            prev.map(n => n.id === id ? { ...n, read: true } : n)
+        );
+    };
 
-    const unreadCount = notifications.length;
+    const markAllAsRead = () => {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    };
+
+    const handleNotificationClick = (notification: Notification) => {
+        markAsRead(notification.id);
+        // Navigate to relevant page based on notification type
+        if (notification.type === 'critical') {
+            navigate('/admin/incidents');
+        } else if (notification.message.includes('reports')) {
+            navigate('/admin/reports');
+        }
+        setShowNotifications(false);
+    };
 
     return (
         <div className={`sticky top-0 z-50 glass-strong border-b border-slate-700/30 ${className}`}>
@@ -84,34 +127,56 @@ export const TopBar: React.FC<TopBarProps> = ({ className = '' }) => {
                             >
                                 <Bell className="w-5 h-5 text-slate-400 hover:text-teal-400" />
                                 {unreadCount > 0 && (
-                                    <span className="absolute top-1 right-1 w-2 h-2 bg-critical-500 rounded-full animate-pulse"></span>
+                                    <>
+                                        <span className="absolute top-1 right-1 w-2 h-2 bg-critical-500 rounded-full animate-pulse"></span>
+                                        <span className="absolute -top-1 -right-1 w-5 h-5 bg-critical-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                                            {unreadCount}
+                                        </span>
+                                    </>
                                 )}
                             </button>
 
                             {/* Notifications Dropdown */}
                             {showNotifications && (
-                                <div className="absolute right-0 mt-2 w-80 glass-strong rounded-xl border border-slate-600/30 shadow-elevation-lg overflow-hidden animate-slide-in">
+                                <div className="absolute right-0 mt-2 w-96 glass-strong rounded-xl border border-slate-600/30 shadow-elevation-lg overflow-hidden animate-slide-in">
                                     <div className="p-4 border-b border-slate-700/50">
                                         <div className="flex items-center justify-between">
                                             <h3 className="font-bold text-white">Notifications</h3>
-                                            <span className="text-xs text-slate-400">{unreadCount} new</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-slate-400">{unreadCount} unread</span>
+                                                {unreadCount > 0 && (
+                                                    <button
+                                                        onClick={markAllAsRead}
+                                                        className="text-xs text-teal-400 hover:text-teal-300 font-semibold"
+                                                    >
+                                                        Mark all read
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="max-h-96 overflow-y-auto">
                                         {notifications.map((notification) => (
                                             <div
                                                 key={notification.id}
-                                                className="p-4 border-b border-slate-700/30 hover:bg-slate-800/50 cursor-pointer transition-colors"
+                                                onClick={() => handleNotificationClick(notification)}
+                                                className={`p-4 border-b border-slate-700/30 hover:bg-slate-800/50 cursor-pointer transition-colors ${!notification.read ? 'bg-teal-500/5' : ''
+                                                    }`}
                                             >
                                                 <div className="flex items-start gap-3">
                                                     <div className={`w-2 h-2 rounded-full mt-2 ${notification.type === 'critical' ? 'bg-critical-500' :
                                                         notification.type === 'warning' ? 'bg-warning-500' :
                                                             'bg-info-500'
-                                                        }`}></div>
+                                                        } ${notification.read ? 'opacity-30' : 'animate-pulse'}`}></div>
                                                     <div className="flex-1">
-                                                        <p className="text-sm text-slate-200">{notification.message}</p>
+                                                        <p className={`text-sm ${notification.read ? 'text-slate-400' : 'text-slate-200 font-semibold'}`}>
+                                                            {notification.message}
+                                                        </p>
                                                         <p className="text-xs text-slate-500 mt-1">{notification.time}</p>
                                                     </div>
+                                                    {notification.read && (
+                                                        <Check className="w-4 h-4 text-teal-500 flex-shrink-0" />
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -149,11 +214,23 @@ export const TopBar: React.FC<TopBarProps> = ({ className = '' }) => {
                                         <p className="text-xs text-slate-400 mt-1">Super Administrator</p>
                                     </div>
                                     <div className="py-2">
-                                        <button className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-3">
+                                        <button
+                                            onClick={() => {
+                                                navigate('/admin/settings/profile');
+                                                setShowProfileMenu(false);
+                                            }}
+                                            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-3"
+                                        >
                                             <User className="w-4 h-4" />
                                             Profile Settings
                                         </button>
-                                        <button className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-3">
+                                        <button
+                                            onClick={() => {
+                                                navigate('/admin/settings/system');
+                                                setShowProfileMenu(false);
+                                            }}
+                                            className="w-full px-4 py-2 text-left text-sm text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-3"
+                                        >
                                             <Settings className="w-4 h-4" />
                                             System Settings
                                         </button>

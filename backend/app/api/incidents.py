@@ -19,7 +19,7 @@ async def get_incidents(
 ):
     """Get all incidents with optional filtering"""
     if status:
-        if status == IncidentStatus.ACTIVE:
+        if status == IncidentStatus.active:
             incidents = IncidentService.get_active_incidents(db, limit=limit)
         else:
             incidents = []  # TODO: Implement filtering by other statuses

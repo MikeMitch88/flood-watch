@@ -10,6 +10,15 @@ import PublicMap from './pages/public/PublicMap';
 import LiveAlerts from './pages/public/LiveAlerts';
 import SafetyGuide from './pages/public/SafetyGuide';
 import AboutPage from './pages/public/AboutPage';
+import { ConfirmEmail } from './pages/auth/ConfirmEmail';
+
+// User Dashboard
+import { UserDashboardLayout } from './components/UserDashboardLayout';
+import { UserDashboard } from './pages/user/UserDashboard';
+import { ReportIncident } from './pages/user/ReportIncident';
+import { MyReports } from './pages/user/MyReports';
+import { UserAlerts } from './pages/user/UserAlerts';
+import { UserProfile } from './pages/user/UserProfile';
 
 // Admin Layout & Pages
 import { DashboardLayout } from './components/DashboardLayout';
@@ -18,10 +27,20 @@ import Reports from './pages/admin/Reports';
 import Incidents from './pages/admin/Incidents';
 import Alerts from './pages/admin/Alerts';
 import Analytics from './pages/admin/Analytics';
+import Users from './pages/admin/Users';
+import AIInsightsPage from './pages/admin/AIInsightsPage';
+import Settings from './pages/admin/Settings';
+import ProfileSettings from './pages/admin/settings/ProfileSettings';
+import SystemSettings from './pages/admin/settings/SystemSettings';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated } = useAuthStore();
     return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+}
+
+function UserPrivateRoute({ children }: { children: React.ReactNode }) {
+    const supabaseSession = localStorage.getItem('supabase_session');
+    return supabaseSession ? <>{children}</> : <Navigate to="/login" />;
 }
 
 function App() {
@@ -45,6 +64,23 @@ function App() {
                 <Route path="/alerts" element={<LiveAlerts />} />
                 <Route path="/safety" element={<SafetyGuide />} />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/auth/confirm" element={<ConfirmEmail />} />
+
+                {/* User Dashboard Routes */}
+                <Route
+                    path="/dashboard"
+                    element={
+                        <UserPrivateRoute>
+                            <UserDashboardLayout />
+                        </UserPrivateRoute>
+                    }
+                >
+                    <Route index element={<UserDashboard />} />
+                    <Route path="report" element={<ReportIncident />} />
+                    <Route path="my-reports" element={<MyReports />} />
+                    <Route path="alerts" element={<UserAlerts />} />
+                    <Route path="profile" element={<UserProfile />} />
+                </Route>
 
                 {/* Admin Routes */}
                 <Route
@@ -58,6 +94,13 @@ function App() {
                                     <Route path="incidents" element={<Incidents />} />
                                     <Route path="alerts" element={<Alerts />} />
                                     <Route path="analytics" element={<Analytics />} />
+                                    <Route path="users" element={<Users />} />
+                                    <Route path="ai-insights" element={<AIInsightsPage />} />
+                                    <Route path="settings" element={<Settings />}>
+                                        <Route path="profile" element={<ProfileSettings />} />
+                                        <Route path="system" element={<SystemSettings />} />
+                                        <Route index element={<Navigate to="/admin/settings/profile" replace />} />
+                                    </Route>
                                     <Route index element={<Navigate to="/admin/dashboard" replace />} />
                                 </Routes>
                             </DashboardLayout>

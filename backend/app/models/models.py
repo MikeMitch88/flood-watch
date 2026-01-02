@@ -32,9 +32,9 @@ class VerificationStatus(str, enum.Enum):
 
 
 class IncidentStatus(str, enum.Enum):
-    ACTIVE = "active"
-    MONITORING = "monitoring"
-    RESOLVED = "resolved"
+    active = "active"
+    monitoring = "monitoring"
+    resolved = "resolved"
 
 
 class AlertLevel(str, enum.Enum):
@@ -136,7 +136,7 @@ class Incident(Base):
     location = Column(Geography(geometry_type='POINT', srid=4326), nullable=False)
     affected_radius_km = Column(Float)
     severity = Column(Enum(SeverityLevel), nullable=False)
-    status = Column(Enum(IncidentStatus), default=IncidentStatus.ACTIVE, index=True)
+    status = Column(Enum(IncidentStatus), default=IncidentStatus.active, index=True)
     report_count = Column(Integer, default=0)
     affected_population_estimate = Column(Integer)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

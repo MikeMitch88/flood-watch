@@ -6,6 +6,7 @@ import {
     Zap, ArrowUp, ArrowDown, Sparkles, BarChart3
 } from 'lucide-react';
 import IncidentMap from '../../components/IncidentMap';
+import { AIInsights } from '../../components/admin/AIInsights';
 import {
     AreaChart,
     Area,
@@ -221,6 +222,9 @@ export default function Dashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* AI Insights Section */}
+            <AIInsights />
 
             {/* Enhanced Recent Incidents Table */}
             <div className="relative group">
