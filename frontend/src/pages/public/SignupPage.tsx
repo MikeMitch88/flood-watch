@@ -44,13 +44,26 @@ export const SignupPage: React.FC = () => {
         setLocationError(null);
 
         try {
+            console.log('🔍 Starting location detection...');
             const location = await geolocationService.getLocation();
+            console.log('✅ Location detected:', {
+                source: location.source,
+                lat: location.lat,
+                lon: location.lon,
+                accuracy: location.accuracy,
+                address: location.address
+            });
+
+            // Preserve ALL location properties including source
             setSelectedLocation({
                 lat: location.lat,
                 lon: location.lon,
                 address: location.address,
-            });
+                source: location.source,
+                accuracy: location.accuracy,
+            } as any);
         } catch (error) {
+            console.error('❌ Location detection failed:', error);
             setLocationError(error instanceof Error ? error.message : 'Location detection failed');
         } finally {
             setLocationLoading(false);
@@ -60,6 +73,7 @@ export const SignupPage: React.FC = () => {
     // Auto-detect location when Step 2 loads
     useEffect(() => {
         if (currentStep === 2 && !selectedLocation) {
+            console.log('📍 Step 2 loaded - auto-detecting location...');
             handleDetectLocation();
         }
     }, [currentStep]);
@@ -375,6 +389,17 @@ export const SignupPage: React.FC = () => {
 
                                 {!selectedLocation && (
                                     <div className="space-y-4">
+                                        {/* GPS Permission Notice */}
+                                        <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 text-sm">
+                                            <p className="text-blue-200 mb-2">
+                                                <strong className="text-blue-100">📍 Enable GPS for Accurate Location</strong>
+                                            </p>
+                                            <p className="text-blue-300/80 text-xs">
+                                                When you click "Detect My Location", your browser will ask for permission.
+                                                Click <strong>"Allow"</strong> to share your precise GPS coordinates.
+                                            </p>
+                                        </div>
+
                                         <Button
                                             variant="primary"
                                             onClick={handleDetectLocation}
@@ -383,6 +408,17 @@ export const SignupPage: React.FC = () => {
                                         >
                                             {locationLoading ? <Loader2 className="animate-spin w-5 h-5" /> : <><Navigation className="w-5 h-5 mr-2" /> Detect My Location</>}
                                         </Button>
+
+                                        {locationError && (
+                                            <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-200">
+                                                <p className="font-medium mb-1">❌ {locationError}</p>
+                                                {locationError.includes('permission') && (
+                                                    <p className="text-xs text-red-300/80 mt-2">
+                                                        To enable GPS: Click the location icon 🔒 in your browser's address bar → Select "Allow"
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
 
                                         <div className="relative">
                                             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-700"></div></div>
@@ -427,13 +463,60 @@ export const SignupPage: React.FC = () => {
                                 )}
 
                                 {selectedLocation && (
-                                    <div className="p-6 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-center animate-scale-in">
-                                        <div className="w-16 h-16 bg-teal-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <Check className="w-8 h-8 text-teal-400" />
+                                    <div className="space-y-4">
+                                        <div className="p-6 rounded-2xl bg-teal-500/10 border border-teal-500/30 animate-scale-in">
+                                            <div className="w-16 h-16 bg-teal-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <Check className="w-8 h-8 text-teal-400" />
+                                            </div>
+                                            <h4 className="text-white font-bold mb-1 text-center">Location Set</h4>
+                                            <p className="text-sm text-teal-200 mb-2 text-center">
+                                                {selectedLocation.address || `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lon.toFixed(4)}`}
+                                            </p>
+
+                                            {/* Show location source */}
+                                            {(selectedLocation as any).source && (
+                                                <div className="flex items-center justify-center gap-2 mb-4">
+                                                    {(selectedLocation as any).source === 'gps' ? (
+                                                        <div className="flex items-center gap-1 text-xs text-teal-300">
+                                                            <Navigation className="w-3 h-3" />
+                                                            <span>GPS Location {(selectedLocation as any).accuracy && `(±${Math.round((selectedLocation as any).accuracy)}m)`}</span>
+                                                        </div>
+                                                    ) : (selectedLocation as any).source === 'ip' ? (
+                                                        <div className="flex flex-col items-center gap-1">
+                                                            <div className="flex items-center gap-1 text-xs text-yellow-400">
+                                                                <MapPin className="w-3 h-3" />
+                                                                <span>IP-based Location (Less Accurate)</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={handleDetectLocation}
+                                                                className="text-xs text-teal-400 hover:text-teal-300 underline"
+                                                            >
+                                                                Try GPS for exact location
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-xs text-slate-400">
+                                                            <MapPin className="w-3 h-3 inline mr-1" />
+                                                            Manual Location
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <div className="flex justify-center">
+                                                <Button variant="glass" size="sm" onClick={() => setSelectedLocation(null)}>Change Location</Button>
+                                            </div>
                                         </div>
-                                        <h4 className="text-white font-bold mb-1">Location Locked</h4>
-                                        <p className="text-sm text-teal-200 mb-4">{selectedLocation.address || `${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lon.toFixed(4)}`}</p>
-                                        <Button variant="glass" size="sm" onClick={() => setSelectedLocation(null)}>Change Location</Button>
+
+                                        {/* GPS Permission Hint */}
+                                        {(selectedLocation as any).source === 'ip' && (
+                                            <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-sm text-yellow-200">
+                                                <p className="font-medium mb-1">💡 Tip: Enable GPS for Better Accuracy</p>
+                                                <p className="text-xs text-yellow-300/80">
+                                                    Click your browser's location icon 📍 in the address bar and select "Allow" to get your exact GPS coordinates.
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

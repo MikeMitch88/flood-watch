@@ -57,7 +57,7 @@ class AlertService:
         alert = Alert(
             id=str(uuid.uuid4()),
             incident_id=incident_id,
-            severity=alert_level,
+            severity=alert_level.value,  # Use .value to get lowercase string
             message=message,
             affected_radius_km=affected_radius,
             delivery_status=AlertDeliveryStatus.PENDING,
@@ -114,10 +114,15 @@ class AlertService:
         Get users who should receive this alert
         Uses geofencing based on alert radius
         """
-        # Get incident location (extract from PostGIS)
-        # Placeholder coordinates
-        lat = -1.2921
-        lon = 36.8219
+        # Extract lat/lon from incident's PostGIS location
+        try:
+            from geoalchemy2.shape import to_shape
+            point = to_shape(alert.incident.location)
+            lat, lon = point.y, point.x
+            print(f"📍 Alert location extracted: lat={lat}, lon={lon}, radius={alert.affected_radius_km}km")
+        except Exception as e:
+            print(f"❌ Error extracting incident location: {e}")
+            return []
         
         # Find users within affected radius
         users = UserService.get_users_within_radius(
@@ -128,6 +133,7 @@ class AlertService:
             alert_subscribed_only=True
         )
         
+        print(f"✅ Found {len(users)} users within {alert.affected_radius_km}km of alert location")
         return users
     
     @staticmethod
@@ -178,7 +184,7 @@ class AlertService:
             delivered = False
             
             # Try WhatsApp first
-            if user.platform == PlatformType.WHATSAPP:
+            if user.platform == PlatformType.whatsapp:
                 from app.bots.whatsapp_api import whatsapp
                 success = whatsapp.send_message(user.platform_id, message)
                 if success:
@@ -186,7 +192,7 @@ class AlertService:
                     delivery_stats['whatsapp'] += 1
             
             # Try Telegram
-            elif user.platform == PlatformType.TELEGRAM:
+            elif user.platform == PlatformType.telegram:
                 from app.bots.telegram_api import telegram
                 success = telegram.send_message(user.platform_id, message)
                 if success:

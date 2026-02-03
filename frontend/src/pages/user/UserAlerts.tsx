@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Bell, AlertTriangle, MapPin, Clock } from 'lucide-react';
-import axios from 'axios';
+import { alertsAPI } from '../../api/client';
 
 interface Alert {
     id: string;
@@ -13,21 +13,77 @@ interface Alert {
 export const UserAlerts: React.FC = () => {
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [loading, setLoading] = useState(true);
+    const [userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
-        fetchAlerts();
+        // Get user ID from session
+        const session = localStorage.getItem('supabase_session');
+        if (session) {
+            try {
+                const parsed = JSON.parse(session);
+                const uid = parsed?.user?.id;
+                setUserId(uid);
+                if (uid) {
+                    fetchAlerts(uid);
+                    // Set up polling for new alerts every 30 seconds
+                    const interval = setInterval(() => fetchAlerts(uid), 30000);
+                    return () => clearInterval(interval);
+                }
+            } catch (error) {
+                console.error('Error parsing session:', error);
+                setLoading(false);
+            }
+        } else {
+            setLoading(false);
+        }
     }, []);
 
-    const fetchAlerts = async () => {
+    const fetchAlerts = async (uid: string) => {
         try {
-            // Fetch alerts from backend
-            const response = await axios.get('http://localhost:8000/api/alerts/');
-            setAlerts(response.data);
+            // Fetch user-specific alerts
+            const response = await alertsAPI.getUserAlerts(uid);
+            const newAlerts = response.data as Alert[];
+
+            // Check for new alerts and show browser notification
+            if (newAlerts.length > alerts.length && alerts.length > 0) {
+                const latestAlert = newAlerts[0];
+                showBrowserNotification(latestAlert);
+            }
+
+            setAlerts(newAlerts);
         } catch (error) {
             console.error('Error fetching alerts:', error);
             setAlerts([]);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const showBrowserNotification = (alert: Alert) => {
+        // Request permission for notifications
+        if ('Notification' in window && Notification.permission === 'granted') {
+            const notification = new Notification('🚨 New Flood Alert', {
+                body: `${alert.severity.toUpperCase()}: ${alert.message.substring(0, 100)}...`,
+                icon: '/flood-icon.png',
+                badge: '/flood-badge.png',
+                tag: alert.id,
+                requireInteraction: true,
+            });
+
+            // Play sound
+            const audio = new Audio('/notification-sound.mp3');
+            audio.play().catch(e => console.log('Could not play sound:', e));
+
+            notification.onclick = () => {
+                window.focus();
+                notification.close();
+            };
+        } else if ('Notification' in window && Notification.permission !== 'denied') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    showBrowserNotification(alert);
+                }
+            });
         }
     };
 

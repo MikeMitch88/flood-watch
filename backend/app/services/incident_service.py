@@ -135,44 +135,69 @@ class IncidentService:
         db.refresh(incident)
         return incident
     
+    
     @staticmethod
     def find_or_create_incident(
         db: Session,
         report: Report,
-        clustering_radius_km: float = 0.5
+        clustering_radius_km: float = 2.0
     ) -> Optional[Incident]:
         """Find existing nearby incident or create new one"""
-        # Find nearby verified reports
-        nearby_reports = ReportService.find_nearby_reports(
-            db,
-            lat=0,  # Extract from report.location
-            lon=0,  # Extract from report.location
-            radius_km=clustering_radius_km,
-            time_window_hours=24
-        )
-        
-        if not nearby_reports:
+        # Extract lat/lon from report's PostGIS location
+        try:
+            from geoalchemy2.shape import to_shape
+            point = to_shape(report.location)
+            lat, lon = point.y, point.x
+        except Exception as e:
+            print(f"❌ Error extracting coordinates from report: {e}")
             return None
         
-        # Check if any of these reports are already linked to an incident
-        for nearby_report in nearby_reports:
-            incident_report = db.query(IncidentReport).filter(
-                IncidentReport.report_id == nearby_report.id
-            ).first()
-            
-            if incident_report:
-                # Add current report to existing incident
-                incident = db.query(Incident).filter(
-                    Incident.id == incident_report.incident_id
-                ).first()
-                
-                if incident and incident.status == IncidentStatus.active:
-                    IncidentService.add_report_to_incident(db, incident.id, report.id)
-                    return incident
+        # Check if any active incidents exist within radius
+        from sqlalchemy import func
+        from geoalchemy2.functions import ST_DWithin, ST_GeogFromText
         
-        # No existing incident found, create new one
-        all_reports = nearby_reports + [report]
-        return IncidentService.create_incident_from_reports(db, all_reports, clustering_radius_km)
+        location_wkt = f'POINT({lon} {lat})'
+        
+        # Find nearby active incidents
+        nearby_incidents = db.query(Incident).filter(
+            Incident.status == IncidentStatus.active,
+            ST_DWithin(
+                Incident.location,
+                ST_GeogFromText(location_wkt),
+                clustering_radius_km * 1000  # Convert km to meters
+            )
+        ).all()
+        
+        if nearby_incidents:
+            # Add report to the first nearby incident
+            incident = nearby_incidents[0]
+            IncidentService.add_report_to_incident(db, incident.id, report.id)
+            print(f"✅ Added report {report.id} to existing incident {incident.id}")
+            return incident
+        
+        # No nearby incident found, create new one
+        incident = Incident(
+            location=report.location,  # Use report's location
+            severity=report.severity,
+            affected_radius_km=clustering_radius_km,
+            report_count=1,
+            status=IncidentStatus.active
+        )
+        
+        db.add(incident)
+        db.flush()  # Get the incident ID
+        
+        # Link the report to this incident
+        incident_report = IncidentReport(
+            incident_id=incident.id,
+            report_id=report.id
+        )
+        db.add(incident_report)
+        db.commit()
+        db.refresh(incident)
+        
+        print(f"✅ Created new incident {incident.id} from report {report.id}")
+        return incident
     
     @staticmethod
     def get_active_incidents(db: Session, limit: int = 100) -> List[Incident]:
@@ -180,6 +205,20 @@ class IncidentService:
         return db.query(Incident).filter(
             Incident.status == IncidentStatus.active
         ).order_by(Incident.created_at.desc()).limit(limit).all()
+    
+    @staticmethod
+    def get_all_incidents(db: Session, skip: int = 0, limit: int = 100) -> List[Incident]:
+        """Get ALL incidents regardless of status"""
+        return db.query(Incident).order_by(
+            Incident.created_at.desc()
+        ).offset(skip).limit(limit).all()
+    
+    @staticmethod
+    def get_incidents_by_status(db: Session, status: IncidentStatus, skip: int = 0, limit: int = 100) -> List[Incident]:
+        """Get incidents filtered by specific status"""
+        return db.query(Incident).filter(
+            Incident.status == status
+        ).order_by(Incident.created_at.desc()).offset(skip).limit(limit).all()
     
     @staticmethod
     def get_incidents_in_bounds(

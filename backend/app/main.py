@@ -7,19 +7,20 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import sentry_sdk
 from app.config import get_settings
-from app.database import engine, Base
+from app.database import engine, Base, init_db
 
 # Import routers (will create these next)
-from app.api import auth, reports, incidents, users, alerts, analytics, webhooks, public_api
+from app.api import auth, reports, incidents, users, alerts, analytics, webhooks, public_api, bots
 
 settings = get_settings()
 
-# Initialize Sentry for error tracking if DSN is provided
+# Initialize Sentry for error tracking (only if configured)
 if settings.SENTRY_DSN:
     sentry_sdk.init(
         dsn=settings.SENTRY_DSN,
         environment=settings.ENVIRONMENT,
-        traces_sample_rate=0.1
+        traces_sample_rate=0.1,
+        profiles_sample_rate=0.1,
     )
 
 # Rate limiter
@@ -137,12 +138,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Trusted host middleware (security)
-if settings.ENVIRONMENT == "production":
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=["*.floodwatch.org", "floodwatch.org"]
-    )
+# Trusted host middleware (security) - Disabled for development
+# if settings.ENVIRONMENT == "production":
+#     app.add_middleware(
+#         TrustedHostMiddleware,
+#         allowed_hosts=["*.floodwatch.org", "floodwatch.org"]
+#     )
 
 
 @app.on_event("startup")
@@ -186,6 +187,7 @@ app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["Webhooks"])
+app.include_router(bots.router, prefix="/api/bots", tags=["Bots"])
 app.include_router(public_api.router, prefix="/api/public", tags=["Public API"])
 
 

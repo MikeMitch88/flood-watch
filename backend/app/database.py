@@ -28,10 +28,18 @@ Base = declarative_base()
 
 def get_db():
     """Dependency for getting database session"""
-    db = SessionLocal()
+    print("get_db() called - creating session...")
     try:
+        db = SessionLocal()
+        print("Session created successfully")
         yield db
+    except Exception as e:
+        print(f"ERROR in get_db: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
     finally:
+        print("Closing database session")
         db.close()
 
 

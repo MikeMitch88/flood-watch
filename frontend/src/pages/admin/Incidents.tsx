@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { incidentsAPI } from '../../api/client';
+import { incidentsAPI, reportsAPI, alertsAPI } from '../../api/client';
 import { MapPin, AlertCircle, Activity, CheckCircle2, Eye, Filter, Zap, Users, ShieldAlert, Sparkles, MapPinned, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import IncidentMap from '../../components/IncidentMap';
@@ -21,6 +21,8 @@ export default function Incidents() {
     const [incidents, setIncidents] = useState<Incident[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+    const [incidentReports, setIncidentReports] = useState<any[]>([]);
+    const [loadingReports, setLoadingReports] = useState(false);
     const [filter, setFilter] = useState<'all' | 'active' | 'monitoring' | 'resolved'>('all');
     const [view, setView] = useState<'grid' | 'map'>('grid');
 
@@ -28,17 +30,80 @@ export default function Incidents() {
         fetchIncidents();
     }, [filter]);
 
+    // Fetch reports when an incident is selected
+    useEffect(() => {
+        if (selectedIncident) {
+            fetchIncidentReports(selectedIncident.id);
+        } else {
+            setIncidentReports([]);
+        }
+    }, [selectedIncident]);
+
     const fetchIncidents = async () => {
         try {
             setLoading(true);
             const params = filter === 'all' ? {} : { status: filter };
+            console.log('Fetching incidents with params:', params);
             const response = await incidentsAPI.getAll(params);
+            console.log('Incidents API response:', response);
+            console.log('Incidents data:', response.data);
+            console.log('Number of incidents:', response.data?.length);
             setIncidents(response.data);
         } catch (error: any) {
             console.error('Failed to fetch incidents:', error);
             toast.error('Failed to load incidents');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchIncidentReports = async (incidentId: string) => {
+        try {
+            setLoadingReports(true);
+            // Fetch all reports and filter by incident
+            const response = await reportsAPI.getAll({ incident_id: incidentId });
+            setIncidentReports(response.data || []);
+        } catch (error) {
+            console.error('Failed to fetch reports:', error);
+            toast.error('Failed to load reports');
+            setIncidentReports([]);
+        } finally {
+            setLoadingReports(false);
+        }
+    };
+
+    const handleVerifyReport = async (reportId: string) => {
+        try {
+            await reportsAPI.verify(reportId);
+            toast.success('Report verified successfully');
+            fetchIncidentReports(selectedIncident!.id);
+            fetchIncidents();
+
+            // Trigger alert for the incident
+            if (selectedIncident) {
+                try {
+                    await alertsAPI.createForIncident(selectedIncident.id);
+                    toast.success('Alert sent to affected users');
+                } catch (alertError) {
+                    console.error('Failed to send alert:', alertError);
+                }
+            }
+        } catch (error) {
+            toast.error('Failed to verify report');
+        }
+    };
+
+    const handleRejectReport = async (reportId: string) => {
+        const reason = prompt('Reason for rejection:');
+        if (!reason) return;
+
+        try {
+            await reportsAPI.reject(reportId, reason);
+            toast.success('Report rejected');
+            fetchIncidentReports(selectedIncident!.id);
+            fetchIncidents();
+        } catch (error) {
+            toast.error('Failed to reject report');
         }
     };
 
@@ -292,6 +357,76 @@ export default function Incidents() {
                                     <div className="text-xs text-rain-400 uppercase">Affected</div>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Reports Section */}
+                        <div className="space-y-4 pt-4 border-t border-rain-700/50">
+                            <h3 className="font-bold text-white flex items-center gap-2">
+                                <AlertCircle className="w-5 h-5 text-orange-400" />
+                                Associated Reports ({incidentReports.length})
+                            </h3>
+
+                            {loadingReports ? (
+                                <div className="text-center py-8">
+                                    <div className="w-8 h-8 border-4 border-aqua-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                                    <p className="text-rain-400 mt-2">Loading reports...</p>
+                                </div>
+                            ) : incidentReports.length > 0 ? (
+                                <div className="space-y-3 max-h-96 overflow-y-auto">
+                                    {incidentReports.map((report: any) => (
+                                        <div key={report.id} className="glass bg-ocean-900/40 p-4 rounded-xl border border-rain-700/30">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className={`px-2 py-1 rounded text-xs font-bold ${report.severity === 'critical' ? 'bg-red-500/20 text-red-400' :
+                                                            report.severity === 'high' ? 'bg-orange-500/20 text-orange-400' :
+                                                                report.severity === 'medium' ? 'bg-amber-500/20 text-amber-400' :
+                                                                    'bg-blue-500/20 text-blue-400'
+                                                            }`}>
+                                                            {report.severity}
+                                                        </span>
+                                                        <span className={`px-2 py-1 rounded text-xs font-bold ${report.verification_status === 'verified' ? 'bg-emerald-500/20 text-emerald-400' :
+                                                            report.verification_status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                                                                'bg-amber-500/20 text-amber-400'
+                                                            }`}>
+                                                            {report.verification_status}
+                                                        </span>
+                                                    </div>
+                                                    {report.description && (
+                                                        <p className="text-sm text-rain-300 mb-2">{report.description}</p>
+                                                    )}
+                                                    {report.address && (
+                                                        <p className="text-xs text-rain-400">{report.address}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {report.verification_status === 'pending' && (
+                                                <div className="flex gap-2 mt-3">
+                                                    <button
+                                                        onClick={() => handleVerifyReport(report.id)}
+                                                        className="flex-1 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-1"
+                                                    >
+                                                        <CheckCircle2 className="w-4 h-4" />
+                                                        Verify & Alert
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleRejectReport(report.id)}
+                                                        className="flex-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-semibold transition-all"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8 text-rain-400">
+                                    <AlertCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                    <p>No reports found for this incident</p>
+                                </div>
+                            )}
                         </div>
 
                         <div className="pt-6 border-t border-rain-700/50 flex gap-4">

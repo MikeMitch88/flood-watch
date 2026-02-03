@@ -30,7 +30,7 @@ async def create_report(
                 id=report_data.user_id,
                 platform="web",
                 platform_id=report_data.user_id,
-                phone_number="web_user",  # Default for web users
+                phone_number=report_data.user_id,  # Use user_id as phone (it's unique anyway)
                 language_code="en",
                 location=WKTElement(f'POINT({report_data.location["lon"]} {report_data.location["lat"]})', srid=4326) if report_data.location else None,
                 alert_subscribed=True,
@@ -43,9 +43,14 @@ async def create_report(
             user = new_user
             print(f"Auto-created user {report_data.user_id} from Supabase")
         except Exception as e:
+            # If user creation fails, rollback and try to fetch existing user
+            db.rollback()
             print(f"Error creating user: {e}")
-            # Continue anyway - allow anonymous reports
-            pass
+            # Try to get existing user one more time (may have been created by another request)
+            user = UserService.get_user_by_id(db, report_data.user_id)
+            if not user:
+                # If still no user, raise error - can't create report without user
+                raise HTTPException(status_code=400, detail=f"Unable to create or find user: {str(e)}")
     
     # Create report
     report = ReportService.create_report(db, report_data)
@@ -185,7 +190,21 @@ async def verify_report(
             detail="Report not found"
         )
     
-    # TODO: Trigger incident creation/update and alert system
+    # Trigger incident creation/update
+    try:
+        from app.services.incident_service import IncidentService
+        
+        # Find or create incident for this verified report
+        incident = IncidentService.find_or_create_incident(db, report)
+        
+        if incident:
+            print(f"✅ Report {report.id} linked to incident {incident.id}")
+        else:
+            print(f"⚠️ No incident created/found for report {report.id}")
+            
+    except Exception as e:
+        print(f"❌ Incident creation error: {e}")
+        # Don't fail the verification if incident creation fails
     
     return report
 

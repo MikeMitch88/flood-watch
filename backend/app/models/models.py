@@ -77,8 +77,31 @@ class OrganizationType(str, enum.Enum):
     GOVERNMENT = "government"
 
 
+class MessageType(str, enum.Enum):
+    command = "command"
+    text = "text"
+    location = "location"
+    media = "media"
+    button = "button"
+
+
 def generate_uuid():
     return str(uuid.uuid4())
+
+
+# --- Bot Messages Table (for analytics) ---
+class BotMessage(Base):
+    __tablename__ = "bot_messages"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    platform = Column(Enum(PlatformType), nullable=False, index=True)
+    platform_user_id = Column(String(100), nullable=False, index=True)
+    message_type = Column(Enum(MessageType), nullable=False)
+    message_text = Column(Text)
+    session_state = Column(String(50))
+    response_time_ms = Column(Integer)  # Time to generate response
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
 
 
 # --- Users Table ---
@@ -161,11 +184,11 @@ class Alert(Base):
     
     id = Column(String(36), primary_key=True, default=generate_uuid)
     incident_id = Column(String(36), ForeignKey("incidents.id"), index=True)
-    severity = Column(Enum(AlertLevel), nullable=False)
+    severity = Column(Enum(AlertLevel, values_callable=lambda x: [e.value for e in x]), nullable=False)
     message = Column(Text, nullable=False)
     affected_radius_km = Column(Float)
     recipients_count = Column(Integer)
-    delivery_status = Column(Enum(AlertDeliveryStatus), default=AlertDeliveryStatus.PENDING)
+    delivery_status = Column(Enum(AlertDeliveryStatus, values_callable=lambda x: [e.value for e in x]), default=AlertDeliveryStatus.PENDING)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     sent_at = Column(DateTime(timezone=True))
     

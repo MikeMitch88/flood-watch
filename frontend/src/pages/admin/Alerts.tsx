@@ -272,26 +272,39 @@ export default function Alerts() {
                     <form onSubmit={handleCreateAlert} className="space-y-6">
                         <div className="space-y-2">
                             <label className="text-rain-400 text-xs font-bold uppercase tracking-wider">Select Incident</label>
-                            <div className="grid grid-cols-1 gap-3 max-h-48 overflow-y-auto pr-2">
-                                {incidents.map((incident) => (
-                                    <div
-                                        key={incident.id}
-                                        onClick={() => setSelectedIncidentId(incident.id)}
-                                        className={`p-3 rounded-xl border cursor-pointer transition-all ${selectedIncidentId === incident.id
-                                            ? 'bg-purple-500/20 border-purple-500'
-                                            : 'bg-ocean-900/30 border-rain-700 hover:border-rain-500'
-                                            }`}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <ShieldAlert className={`w-4 h-4 ${selectedIncidentId === incident.id ? 'text-purple-400' : 'text-rain-400'}`} />
-                                                <span className="text-white font-medium">Incident #{incident.id.slice(0, 8)}</span>
+                            {incidents.length === 0 ? (
+                                <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-6 text-center">
+                                    <ShieldAlert className="w-12 h-12 text-orange-400 mx-auto mb-3" />
+                                    <h4 className="text-white font-bold mb-2">No Active Incidents</h4>
+                                    <p className="text-rain-400 text-sm mb-3">
+                                        Incidents are automatically created when reports are verified.
+                                    </p>
+                                    <p className="text-rain-400 text-xs">
+                                        Go to <strong className="text-white">Reports</strong> → Verify pending reports → Incidents will be created automatically
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 gap-3 max-h-48 overflow-y-auto pr-2">
+                                    {incidents.map((incident) => (
+                                        <div
+                                            key={incident.id}
+                                            onClick={() => setSelectedIncidentId(incident.id)}
+                                            className={`p-3 rounded-xl border cursor-pointer transition-all ${selectedIncidentId === incident.id
+                                                ? 'bg-purple-500/20 border-purple-500'
+                                                : 'bg-ocean-900/30 border-rain-700 hover:border-rain-500'
+                                                }`}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <ShieldAlert className={`w-4 h-4 ${selectedIncidentId === incident.id ? 'text-purple-400' : 'text-rain-400'}`} />
+                                                    <span className="text-white font-medium">Incident #{incident.id.slice(0, 8)}</span>
+                                                </div>
+                                                <span className="text-xs text-rain-400">{new Date(incident.created_at).toLocaleDateString()}</span>
                                             </div>
-                                            <span className="text-xs text-rain-400">{new Date(incident.created_at).toLocaleDateString()}</span>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -315,11 +328,24 @@ export default function Alerts() {
                             </div>
                         </div>
 
+                        {!selectedIncidentId && (
+                            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 flex items-start gap-3">
+                                <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-amber-400 font-semibold text-sm">Select an Incident First</p>
+                                    <p className="text-rain-400 text-xs mt-1">Choose an active incident above to send alerts to affected users</p>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="pt-4">
                             <button
                                 type="submit"
                                 disabled={creating || !selectedIncidentId}
-                                className="w-full py-4 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-purple-500/30 hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className={`w-full py-4 rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2 ${creating || !selectedIncidentId
+                                    ? 'bg-rain-700 text-rain-500 cursor-not-allowed'
+                                    : 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-purple-500/30 hover:scale-[1.02]'
+                                    }`}
                             >
                                 {creating ? (
                                     <>

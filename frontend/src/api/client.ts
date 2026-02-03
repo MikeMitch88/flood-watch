@@ -63,6 +63,7 @@ export const alertsAPI = {
     retry: (id: string) => api.post(`/alerts/${id}/retry`),
     getForIncident: (incidentId: string) =>
         api.get(`/alerts/incident/${incidentId}/alerts`),
+    getUserAlerts: (userId: string) => api.get(`/alerts/user/${userId}/alerts`),
 };
 
 export const analyticsAPI = {

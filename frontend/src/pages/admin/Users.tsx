@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { Users as UsersIcon, Search, UserCheck, UserX, Shield, Mail, Phone } from 'lucide-react';
-import axios from 'axios';
+import { useEffect, useState } from 'react';
+import { Users as UsersIcon, Search, UserCheck, UserX } from 'lucide-react';
+import { usersAPI } from '../../api/client';
 
 interface User {
     id: string;
@@ -23,7 +23,7 @@ export default function Users() {
 
     const fetchUsers = async () => {
         try {
-            const response = await axios.get('http://localhost:8000/api/users/');
+            const response = await usersAPI.getAll();
             setUsers(response.data);
         } catch (error) {
             console.error('Error fetching users:', error);

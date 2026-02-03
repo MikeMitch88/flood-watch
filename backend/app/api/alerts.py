@@ -38,12 +38,24 @@ async def create_alert(
 @router.post("/incident/{incident_id}/alert", response_model=AlertResponse)
 async def create_alert_for_incident(
     incident_id: str,
-    alert_level: Optional[AlertLevel] = None,
+    severity: Optional[str] = None,
     background_tasks: BackgroundTasks = BackgroundTasks(),
     db: Session = Depends(get_db),
     current_admin: AdminUser = Depends(get_current_admin)
 ):
     """Generate and send alert for a specific incident"""
+    # Convert string severity to AlertLevel enum
+    alert_level = None
+    if severity:
+        severity_lower = severity.lower()
+        severity_map = {
+            'advisory': AlertLevel.ADVISORY,
+            'watch': AlertLevel.WATCH,
+            'warning': AlertLevel.WARNING,
+            'emergency': AlertLevel.EMERGENCY
+        }
+        alert_level = severity_map.get(severity_lower)
+    
     alert = AlertService.generate_alert_from_incident(db, incident_id, alert_level)
     
     # Deliver in background

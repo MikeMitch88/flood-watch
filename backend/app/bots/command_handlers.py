@@ -25,25 +25,31 @@ class CommandHandler:
         message_data: Dict[str, Any]
     ) -> str:
         """Route command to appropriate handler"""
-        # Get user's language preference
-        user = UserService.get_user_by_platform_id(self.db, platform, user_id)
-        language = user.language_code if user else "en"
-        
-        handlers = {
-            '/start': self.handle_start,
-            '/help': self.handle_help,
-            '/report': self.handle_report,
-            '/alerts': self.handle_alerts,
-            '/status': self.handle_status,
-            '/safety': self.handle_safety,
-            '/language': self.handle_language,
-        }
-        
-        handler = handlers.get(command.lower())
-        if handler:
-            return handler(user_id, platform, language, message_data)
-        
-        return i18n.get("help_menu", language)
+        try:
+            # Get user's language preference
+            user = UserService.get_user_by_platform_id(self.db, platform, user_id)
+            language = user.language_code if user else "en"
+            
+            handlers = {
+                '/start': self.handle_start,
+                '/help': self.handle_help,
+                '/report': self.handle_report,
+                '/alerts': self.handle_alerts,
+                '/status': self.handle_status,
+                '/safety': self.handle_safety,
+                '/language': self.handle_language,
+            }
+            
+            handler = handlers.get(command.lower())
+            if handler:
+                return handler(user_id, platform, language, message_data)
+            
+            return i18n.get("help_menu", language)
+        except Exception as e:
+            print(f"Error in handle_command: {e}")
+            import traceback
+            traceback.print_exc()
+            return "Sorry, an error occurred. Please try again."
     
     def handle_start(self, user_id: str, platform: PlatformType, language: str, message_data: Dict) -> str:
         """Handle /start command"""
@@ -63,8 +69,11 @@ class CommandHandler:
             )
             user = UserService.create_user(self.db, user_data)
         
-        # Clear any existing session
-        self.session_manager.clear_session(user_id, platform.value)
+        # Clear any existing session (with error handling)
+        try:
+            self.session_manager.clear_session(user_id, platform.value)
+        except Exception as e:
+            print(f"Warning: Could not clear session: {e}")
         
         return i18n.get("welcome", language)
     
@@ -148,15 +157,21 @@ class CommandHandler:
         # Get current state
         state = self.session_manager.get_state(user_id, platform.value)
         
+        print(f"DEBUG: Current state for user {user_id}: {state}")
+        
         if not state:
             state = ConversationState.IDLE.value
+            print(f"DEBUG: No state found, defaulting to IDLE")
         
         # Get user's language
         user = UserService.get_user_by_platform_id(self.db, platform, user_id)
         language = user.language_code if user else "en"
         
+        print(f"DEBUG: Routing message based on state: {state}")
+        
         # Route to appropriate handler based on state
         if state == ConversationState.AWAITING_LOCATION.value:
+            print(f"DEBUG: Calling _handle_location_input")
             return self._handle_location_input(user_id, platform, language, location, message_text)
         
         elif state == ConversationState.AWAITING_SEVERITY.value:
@@ -185,34 +200,40 @@ class CommandHandler:
     
     def _handle_location_input(self, user_id: str, platform: PlatformType, language: str, location: Optional[Dict], message_text: Optional[str]) -> str:
         """Handle location input during report flow"""
+        from app.utils.location_parser import extract_location
+        
+        coords = None
+        address = None
+        
+        # First, try native Telegram location
         if location:
             coords = geocoding.parse_location(location)
             if coords:
                 lat, lon = coords
                 address = geocoding.reverse_geocode(lat, lon)
-                
-                # Store location in session
-                self.session_manager.store_temp_data(user_id, platform.value, 'location', {'lat': lat, 'lon': lon})
-                self.session_manager.store_temp_data(user_id, platform.value, 'address', address)
-                
-                # Move to next state
-                self.session_manager.set_state(user_id, platform.value, ConversationState.AWAITING_SEVERITY.value)
-                
-                return i18n.get("report.request_severity", language)
         
+        # If no native location, try parsing text (Google Maps links, coordinates, or address)
         elif message_text:
-            # Try to geocode the text address
-            coords = geocoding.geocode_address(message_text)
+            coords = extract_location(message_text)
             if coords:
                 lat, lon = coords
-                
-                self.session_manager.store_temp_data(user_id, platform.value, 'location', {'lat': lat, 'lon': lon})
-                self.session_manager.store_temp_data(user_id, platform.value, 'address', message_text)
-                
-                self.session_manager.set_state(user_id, platform.value, ConversationState.AWAITING_SEVERITY.value)
-                
-                return i18n.get("report.request_severity", language)
+                # Try to get address name
+                address = geocoding.reverse_geocode(lat, lon) or message_text
         
+        # If we got coordinates, proceed
+        if coords:
+            lat, lon = coords
+            
+            # Store location in session
+            self.session_manager.store_temp_data(user_id, platform.value, 'location', {'lat': lat, 'lon': lon})
+            self.session_manager.store_temp_data(user_id, platform.value, 'address', address)
+            
+            # Move to next state
+            self.session_manager.set_state(user_id, platform.value, ConversationState.AWAITING_SEVERITY.value)
+            
+            return i18n.get("report.request_severity", language)
+        
+        # No valid location found
         return i18n.get("error.invalid_location", language)
     
     def _handle_severity_input(self, user_id: str, platform: PlatformType, language: str, message_text: str) -> str:
@@ -302,15 +323,38 @@ class CommandHandler:
     
     def _handle_alert_location(self, user_id: str, platform: PlatformType, language: str, location: Optional[Dict], message_text: Optional[str]) -> str:
         """Handle alert location setup"""
+        from app.utils.location_parser import extract_location
+        
+        coords = None
+        address = None
+        
+        # First, try native Telegram location
         if location:
             coords = geocoding.parse_location(location)
             if coords:
-                self.session_manager.store_temp_data(user_id, platform.value, 'location', {'lat': coords[0], 'lon': coords[1]})
-                self.session_manager.set_state(user_id, platform.value, ConversationState.AWAITING_ALERT_RADIUS.value)
-                
-                return i18n.get("alert.request_radius", language)
+                lat, lon = coords
+                address = geocoding.reverse_geocode(lat, lon)
         
-        return i18n.get("error.location_required", language)
+        # If no native location, try parsing text (Google Maps links, coordinates, or address)
+        elif message_text:
+            coords = extract_location(message_text)
+            if coords:
+                lat, lon = coords
+                # Try to get address name
+                address = geocoding.reverse_geocode(lat, lon) or message_text
+        
+        # If we got coordinates, proceed
+        if coords:
+            lat, lon = coords
+            
+            # Store location in session
+            self.session_manager.store_temp_data(user_id, platform.value, 'location', {'lat': lat, 'lon': lon})
+            self.session_manager.set_state(user_id, platform.value, ConversationState.AWAITING_ALERT_RADIUS.value)
+            
+            return i18n.get("alert.request_radius", language)
+        
+        # No valid location found
+        return i18n.get("error.invalid_location", language)
     
     def _handle_alert_radius(self, user_id: str, platform: PlatformType, language: str, message_text: str) -> str:
         """Handle alert radius setup"""

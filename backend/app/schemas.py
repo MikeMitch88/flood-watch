@@ -36,10 +36,25 @@ class UserResponse(UserBase):
     platform_id: str
     location: Optional[dict] = None
     alert_subscribed: bool
-    alert_radius_km: int
+    alert_radius_km: Optional[int] = None  # Can be None if not set
     credibility_score: int
     created_at: datetime
     last_active: datetime
+    
+    @validator('location', pre=True)
+    def convert_location(cls, v):
+        """Convert PostGIS WKBElement to dict"""
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v
+        # WKBElement from PostGIS
+        try:
+            from geoalchemy2.shape import to_shape
+            point = to_shape(v)
+            return {'lat': point.y, 'lon': point.x}
+        except:
+            return None
     
     class Config:
         from_attributes = True
@@ -123,6 +138,21 @@ class IncidentResponse(IncidentBase):
     affected_population_estimate: Optional[int] = None
     created_at: datetime
     resolved_at: Optional[datetime] = None
+    
+    @validator('location', pre=True)
+    def convert_location(cls, v):
+        """Convert PostGIS WKBElement to dict"""
+        if v is None:
+            return None
+        if isinstance(v, dict):
+            return v
+        # WKBElement from PostGIS
+        try:
+            from geoalchemy2.shape import to_shape
+            point = to_shape(v)
+            return {'lat': point.y, 'lon': point.x}
+        except:
+            return None
     
     class Config:
         from_attributes = True

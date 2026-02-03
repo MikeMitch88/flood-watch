@@ -11,6 +11,7 @@ import {
     Users,
     ChevronLeft,
     ChevronRight,
+    MessageSquare,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -31,6 +32,7 @@ const navItems: NavItem[] = [
     { name: 'Incidents', path: '/admin/incidents', icon: AlertTriangle, badge: '3' },
     { name: 'Alerts', path: '/admin/alerts', icon: Megaphone },
     { name: 'Analytics', path: '/admin/analytics', icon: TrendingUp },
+    { name: 'Bots', path: '/admin/bots', icon: MessageSquare },
     { name: 'AI Insights', path: '/admin/ai-insights', icon: Brain, badge: 'NEW' },
     { name: 'Settings', path: '/admin/settings', icon: Settings },
     { name: 'Users', path: '/admin/users', icon: Users, requiredRole: ['SUPER_ADMIN'] },
@@ -84,8 +86,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                                         {item.badge && (
                                             <span
                                                 className={`px-2 py-0.5 rounded-md text-xs font-bold ${item.badge === 'NEW'
-                                                        ? 'bg-teal-500/20 text-teal-400'
-                                                        : 'bg-critical-500/20 text-critical-400'
+                                                    ? 'bg-teal-500/20 text-teal-400'
+                                                    : 'bg-critical-500/20 text-critical-400'
                                                     }`}
                                             >
                                                 {item.badge}

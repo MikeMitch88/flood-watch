@@ -8,10 +8,21 @@ settings = get_settings()
 
 
 class SessionManager:
-    """Manage conversation sessions using Redis"""
+    """Manage conversation sessions using Redis (or in-memory fallback)"""
     
     def __init__(self):
-        self.redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+        try:
+            self.redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+            # Test connection
+            self.redis_client.ping()
+            self.use_redis = True
+            print("✅ Redis connected successfully")
+        except Exception as e:
+            print(f"⚠️  Redis not available ({e}), using in-memory session storage")
+            self.redis_client = None
+            self.use_redis = False
+            self._memory_store = {}  # Fallback to in-memory dict
+        
         self.session_ttl = timedelta(hours=24)  # Sessions expire after 24 hours
     
     def _get_session_key(self, user_id: str, platform: str) -> str:
@@ -21,20 +32,28 @@ class SessionManager:
     def get_session(self, user_id: str, platform: str) -> Optional[Dict[str, Any]]:
         """Get user's conversation session"""
         key = self._get_session_key(user_id, platform)
-        data = self.redis_client.get(key)
         
-        if data:
-            return json.loads(data)
+        if self.use_redis:
+            data = self.redis_client.get(key)
+            if data:
+                return json.loads(data)
+        else:
+            return self._memory_store.get(key)
+        
         return None
     
     def set_session(self, user_id: str, platform: str, session_data: Dict[str, Any]) -> None:
         """Save user's conversation session"""
         key = self._get_session_key(user_id, platform)
-        self.redis_client.setex(
-            key,
-            self.session_ttl,
-            json.dumps(session_data)
-        )
+        
+        if self.use_redis:
+            self.redis_client.setex(
+                key,
+                self.session_ttl,
+                json.dumps(session_data)
+            )
+        else:
+            self._memory_store[key] = session_data
     
     def update_session(self, user_id: str, platform: str, updates: Dict[str, Any]) -> None:
         """Update specific fields in session"""
@@ -45,7 +64,11 @@ class SessionManager:
     def clear_session(self, user_id: str, platform: str) -> None:
         """Clear user's conversation session"""
         key = self._get_session_key(user_id, platform)
-        self.redis_client.delete(key)
+        
+        if self.use_redis:
+            self.redis_client.delete(key)
+        else:
+            self._memory_store.pop(key, None)
     
     def get_state(self, user_id: str, platform: str) -> Optional[str]:
         """Get current conversation state"""

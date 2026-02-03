@@ -32,6 +32,7 @@ import AIInsightsPage from './pages/admin/AIInsightsPage';
 import Settings from './pages/admin/Settings';
 import ProfileSettings from './pages/admin/settings/ProfileSettings';
 import SystemSettings from './pages/admin/settings/SystemSettings';
+import BotManagement from './pages/admin/BotManagement';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated } = useAuthStore();
@@ -96,6 +97,7 @@ function App() {
                                     <Route path="analytics" element={<Analytics />} />
                                     <Route path="users" element={<Users />} />
                                     <Route path="ai-insights" element={<AIInsightsPage />} />
+                                    <Route path="bots" element={<BotManagement />} />
                                     <Route path="settings" element={<Settings />}>
                                         <Route path="profile" element={<ProfileSettings />} />
                                         <Route path="system" element={<SystemSettings />} />
