@@ -102,7 +102,7 @@ class BotService {
                     messagesProcessed: telegram.messages || 0,
                     reportsSubmitted: telegram.reports || 0,
                     averageResponseTime: telegram.avg_response_ms ?
-                        parseFloat((telegram.avg_response_ms / 1000).toFixed(1)) : 0
+                        Math.round((Number(telegram.avg_response_ms) / 1000) * 10) / 10 : 0
                 });
             }
 
@@ -115,7 +115,7 @@ class BotService {
                     messagesProcessed: whatsapp.messages || 0,
                     reportsSubmitted: whatsapp.reports || 0,
                     averageResponseTime: whatsapp.avg_response_ms ?
-                        parseFloat((whatsapp.avg_response_ms / 1000).toFixed(1)) : 0
+                        Math.round((Number(whatsapp.avg_response_ms) / 1000) * 10) / 10 : 0
                 });
             }
 

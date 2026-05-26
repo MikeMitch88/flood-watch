@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { User, Mail, Lock, MapPin, Droplets, ArrowRight, Check, Loader2, Navigation, ChevronLeft } from 'lucide-react';
+import { User, Mail, Lock, MapPin, Droplets, ArrowRight, Check, Loader2, Navigation } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { geolocationService } from '../../services/GeolocationService';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';

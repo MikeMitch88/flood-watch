@@ -31,7 +31,7 @@ export default function Alerts() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedIncidentId, setSelectedIncidentId] = useState('');
     const [alertSeverity, setAlertSeverity] = useState<'advisory' | 'watch' | 'warning' | 'emergency'>('watch');
-    const [alertMessage, setAlertMessage] = useState('');
+    const [_alertMessage, setAlertMessage] = useState('');
     const [creating, setCreating] = useState(false);
 
     useEffect(() => {

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Brain, TrendingUp, AlertTriangle, Lightbulb, Target, Zap, ArrowRight } from 'lucide-react';
 import { AIInsights } from '../../components/admin/AIInsights';
 

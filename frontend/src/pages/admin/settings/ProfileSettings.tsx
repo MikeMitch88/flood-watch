@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { User, Mail, Save, Camera } from 'lucide-react';
+import { useState } from 'react';
+import { User, Save, Camera } from 'lucide-react';
 import { Button } from '../../../components/Button';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../../store/authStore';

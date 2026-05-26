@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MessageSquare, Activity, Users, CheckCircle, XCircle, AlertCircle, Settings as SettingsIcon, Zap, TrendingUp } from 'lucide-react';
 import { botService, BotStatus, BotMetrics } from '../../services/botService';
 import toast from 'react-hot-toast';

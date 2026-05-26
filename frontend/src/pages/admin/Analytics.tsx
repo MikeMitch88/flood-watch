@@ -84,13 +84,6 @@ export default function Analytics() {
         }
     };
 
-    const COLORS = {
-        low: '#3b82f6',
-        medium: '#f59e0b',
-        high: '#f97316',
-        critical: '#ef4444'
-    };
-
     const SEVERITY_COLORS = ['#3b82f6', '#f59e0b', '#f97316', '#ef4444']; // Blue, Amber, Orange, Red
 
     const exportData = () => {

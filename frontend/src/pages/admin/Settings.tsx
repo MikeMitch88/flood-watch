@@ -1,6 +1,5 @@
-import React from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { Settings as SettingsIcon, User, Sliders, Bell, Shield } from 'lucide-react';
+import { User, Sliders, Bell, Shield } from 'lucide-react';
 
 export default function Settings() {
     const settingsSections = [

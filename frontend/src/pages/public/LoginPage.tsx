@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Mail, Lock, Droplets, Loader2, ArrowRight } from 'lucide-react';
 import { Button } from '../../components/Button';
-import { Input } from '../../components/Input';
 import { authAPI } from '../../api/client';
 import toast from 'react-hot-toast';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 
 export const LoginPage: React.FC = () => {
-    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [rememberMe, setRememberMe] = useState(false);

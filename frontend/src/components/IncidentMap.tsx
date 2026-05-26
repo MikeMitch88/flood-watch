@@ -3,12 +3,12 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default marker icons
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+const iconUrl = new URL('leaflet/dist/images/marker-icon.png', import.meta.url).href;
+const iconShadowUrl = new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).href;
 
-let DefaultIcon = L.icon({
-    iconUrl: icon,
-    shadowUrl: iconShadow,
+const DefaultIcon = L.icon({
+    iconUrl,
+    shadowUrl: iconShadowUrl,
     iconSize: [25, 41],
     iconAnchor: [12, 41],
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Sliders, Save, AlertTriangle } from 'lucide-react';
 import { Button } from '../../../components/Button';
 import toast from 'react-hot-toast';
