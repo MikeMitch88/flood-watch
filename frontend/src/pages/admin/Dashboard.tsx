@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import IncidentMap from '../../components/IncidentMap';
 import { AIInsights } from '../../components/admin/AIInsights';
+import LiveReportFeed from '../../components/admin/LiveReportFeed';
 import {
     AreaChart,
     Area,
@@ -141,6 +142,9 @@ export default function Dashboard() {
                     glowColor="sky-500"
                 />
             </div>
+
+            {/* Live SMS Report Feed */}
+            <LiveReportFeed />
 
             {/* Charts & Map Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

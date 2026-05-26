@@ -10,7 +10,7 @@ from app.config import get_settings
 from app.database import engine, Base, init_db
 
 # Import routers (will create these next)
-from app.api import auth, reports, incidents, users, alerts, analytics, webhooks, public_api, bots
+from app.api import auth, reports, incidents, users, alerts, analytics, webhooks, public_api, bots, sms
 
 settings = get_settings()
 
@@ -191,6 +191,7 @@ app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"]
 app.include_router(webhooks.router, prefix="/api/webhooks", tags=["Webhooks"])
 app.include_router(bots.router, prefix="/api/bots", tags=["Bots"])
 app.include_router(public_api.router, prefix="/api/public", tags=["Public API"])
+app.include_router(sms.router, prefix="/api/alerts/sms", tags=["SMS Alerts"])
 
 
 @app.exception_handler(Exception)

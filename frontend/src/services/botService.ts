@@ -17,6 +17,12 @@ export interface BotMetrics {
     averageResponseTime: number;
 }
 
+export interface SmsMetrics {
+    active_campaigns: number;
+    sms_sent_today: number;
+    delivery_rate: number;
+}
+
 export interface BotSession {
     id: string;
     userId: string;
@@ -123,6 +129,19 @@ class BotService {
             console.error('Error fetching bot metrics:', error);
             // Return empty array on error - no mock data
             return [];
+        }
+    }
+
+    /**
+     * Get SMS metrics
+     */
+    async getSmsMetrics(): Promise<SmsMetrics | null> {
+        try {
+            const response = await api.get(`/alerts/sms/metrics`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching SMS metrics:', error);
+            return null;
         }
     }
 

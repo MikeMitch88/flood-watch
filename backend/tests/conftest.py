@@ -8,12 +8,54 @@ from app.models import AdminUser, User, Report, Incident, Alert, PlatformType, S
 from app.auth import get_password_hash
 import uuid
 
-# Test database
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
+
+from sqlalchemy.ext.compiler import compiles
+from geoalchemy2 import Geography
+from sqlalchemy import ARRAY
+import sqlite3
+from sqlalchemy import event
+
+@compiles(Geography, "sqlite")
+def compile_geography(element, compiler, **kw):
+    return "VARCHAR(255)"
+
+@compiles(ARRAY, "sqlite")
+def compile_array(element, compiler, **kw):
+    return "TEXT"
+
+def st_dwithin(*args):
+    return 1
+
+def st_geogfromtext(*args):
+    return args[0] if args else ""
+
+def st_distance(*args):
+    return 0
+
+def st_centroid(*args):
+    return ""
+
+def st_union(*args):
+    return ""
+
+def as_binary(*args):
+    return b"\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+
+@event.listens_for(engine, "connect")
+def connect(dbapi_connection, connection_record):
+    if type(dbapi_connection) is sqlite3.Connection:
+        dbapi_connection.create_function("ST_DWithin", 2, st_dwithin)
+        dbapi_connection.create_function("ST_GeogFromText", 1, st_geogfromtext)
+        dbapi_connection.create_function("ST_Distance", 2, st_distance)
+        dbapi_connection.create_function("ST_Centroid", 1, st_centroid)
+        dbapi_connection.create_function("ST_Union", 1, st_union)
+        dbapi_connection.create_function("AsBinary", 1, as_binary)
+
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

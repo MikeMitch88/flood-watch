@@ -31,6 +31,19 @@ class VerificationStatus(str, enum.Enum):
     flagged = "flagged"
 
 
+class SmsReportStatus(str, enum.Enum):
+    PENDING = "pending"
+    CLUSTERED = "clustered"
+    VERIFIED = "verified"
+    DISMISSED = "dismissed"
+
+
+class IncidentSource(str, enum.Enum):
+    WARDEN = "warden"
+    PUBLIC_CLUSTER = "public_cluster"
+    SYSTEM = "system"
+
+
 class IncidentStatus(str, enum.Enum):
     active = "active"
     monitoring = "monitoring"
@@ -103,6 +116,28 @@ class BotMessage(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
+# --- SMS Alert System Models ---
+class TrustedWarden(Base):
+    __tablename__ = "trusted_wardens"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    name = Column(String(255), nullable=False)
+    phone_number = Column(String(50), unique=True, nullable=False, index=True)
+    region = Column(String(255))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class SmsReport(Base):
+    __tablename__ = "sms_reports"
+    
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    phone_number = Column(String(50), nullable=False, index=True)
+    message_body = Column(Text, nullable=False)
+    extracted_location = Column(String(255))
+    status = Column(Enum(SmsReportStatus), default=SmsReportStatus.PENDING, index=True)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
 
 # --- Users Table ---
 class User(Base):
@@ -159,6 +194,7 @@ class Incident(Base):
     location = Column(Geography(geometry_type='POINT', srid=4326), nullable=False)
     affected_radius_km = Column(Float)
     severity = Column(Enum(SeverityLevel), nullable=False)
+    source = Column(Enum(IncidentSource), default=IncidentSource.SYSTEM)
     status = Column(Enum(IncidentStatus), default=IncidentStatus.active, index=True)
     report_count = Column(Integer, default=0)
     affected_population_estimate = Column(Integer)
