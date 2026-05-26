@@ -13,7 +13,7 @@ interface Alert {
 export const UserAlerts: React.FC = () => {
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [loading, setLoading] = useState(true);
-    const [userId, setUserId] = useState<string | null>(null);
+    const [_userId, setUserId] = useState<string | null>(null);
 
     useEffect(() => {
         // Get user ID from session

@@ -102,7 +102,7 @@ class BotService {
                     messagesProcessed: telegram.messages || 0,
                     reportsSubmitted: telegram.reports || 0,
                     averageResponseTime: telegram.avg_response_ms ?
-                        (telegram.avg_response_ms / 1000).toFixed(1) : '0.0'
+                        parseFloat((telegram.avg_response_ms / 1000).toFixed(1)) : 0
                 });
             }
 
@@ -115,7 +115,7 @@ class BotService {
                     messagesProcessed: whatsapp.messages || 0,
                     reportsSubmitted: whatsapp.reports || 0,
                     averageResponseTime: whatsapp.avg_response_ms ?
-                        (whatsapp.avg_response_ms / 1000).toFixed(1) : '0.0'
+                        parseFloat((whatsapp.avg_response_ms / 1000).toFixed(1)) : 0
                 });
             }
 
@@ -136,7 +136,7 @@ class BotService {
             const data = response.data;
 
             // Transform backend response to frontend format
-            return (data.sessions || []).map((session: any, index: number) => ({
+            return (data.sessions || []).map((session: any, _index: number) => ({
                 id: `${session.platform}-${session.user_id}`,
                 userId: session.user_id,
                 platform: session.platform as 'whatsapp' | 'telegram',

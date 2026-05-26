@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { User, Mail, Lock, MapPin, Droplets, ArrowRight, Check, Loader2, Navigation, ChevronLeft } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { geolocationService } from '../../services/GeolocationService';
@@ -9,7 +9,6 @@ import toast from 'react-hot-toast';
 type Step = 1 | 2 | 3;
 
 export const SignupPage: React.FC = () => {
-    const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState<Step>(1);
 
     // Step 1 - Basic Info
@@ -26,16 +25,14 @@ export const SignupPage: React.FC = () => {
 
     // Step 2 - Location
     const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lon: number; address?: string } | null>(null);
-    const [radius, setRadius] = useState(5); // km
+    const [radius] = useState(5); // km
     const [locationLoading, setLocationLoading] = useState(false);
     const [locationError, setLocationError] = useState<string | null>(null);
     const [addressSearch, setAddressSearch] = useState('');
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
 
-    const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
-    const [verifyingCode, setVerifyingCode] = useState(false);
-    const [verificationError, setVerificationError] = useState<string | null>(null);
+    const [, setVerificationCode] = useState(['', '', '', '', '', '']);
     const [showVerificationMessage, setShowVerificationMessage] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -209,19 +206,15 @@ export const SignupPage: React.FC = () => {
         }
     };
 
-    const handleVerificationInput = (index: number, value: string) => {
+    const handleVerificationInput = (_index: number, value: string) => {
         if (value.length <= 1) {
-            const newCode = [...verificationCode];
-            newCode[index] = value;
+            const newCode = ['', '', '', '', '', ''];
+            newCode[0] = value;
             setVerificationCode(newCode);
-
-            // Auto-focus next input
-            if (value && index < 5) {
-                const nextInput = document.getElementById(`code-${index + 1}`);
-                nextInput?.focus();
-            }
         }
     };
+    // Suppress unused warning
+    void handleVerificationInput;
 
     return (
         <div className="min-h-screen bg-navy-950 flex font-sans selection:bg-teal-500/30">
