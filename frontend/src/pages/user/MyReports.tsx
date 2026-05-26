@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FileText, Clock, CheckCircle, XCircle, MapPin, AlertTriangle } from 'lucide-react';
-import axios from 'axios';
+import api from '../../api/client';
 import toast from 'react-hot-toast';
 
 interface Report {
@@ -32,7 +32,7 @@ export const MyReports: React.FC = () => {
             }
 
             // Fetch reports from backend using user-specific endpoint
-            const response = await axios.get(`http://localhost:8000/api/reports/user/${user.id}`);
+            const response = await api.get(`/reports/user/${user.id}`);
             setReports(response.data);
         } catch (error: any) {
             console.error('Error fetching reports:', error);

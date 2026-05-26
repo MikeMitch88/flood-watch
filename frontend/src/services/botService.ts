@@ -1,6 +1,5 @@
-import axios from 'axios';
+import api from '../api/client';
 
-const API_BASE_URL = 'http://localhost:8000/api';
 
 export interface BotStatus {
     platform: 'whatsapp' | 'telegram';
@@ -48,7 +47,7 @@ class BotService {
      */
     async getBotStatus(): Promise<BotStatus[]> {
         try {
-            const response = await axios.get(`${API_BASE_URL}/bots/status`);
+            const response = await api.get(`/bots/status`);
             const data = response.data;
 
             // Transform backend response to frontend format
@@ -87,7 +86,7 @@ class BotService {
      */
     async getBotMetrics(): Promise<BotMetrics[]> {
         try {
-            const response = await axios.get(`${API_BASE_URL}/bots/metrics`);
+            const response = await api.get(`/bots/metrics`);
             const data = response.data;
 
             // Transform backend response to frontend format
@@ -132,7 +131,7 @@ class BotService {
      */
     async getActiveSessions(): Promise<BotSession[]> {
         try {
-            const response = await axios.get(`${API_BASE_URL}/bots/sessions`);
+            const response = await api.get(`/bots/sessions`);
             const data = response.data;
 
             // Transform backend response to frontend format
@@ -156,7 +155,7 @@ class BotService {
      */
     async getBotConfig(): Promise<BotConfig> {
         try {
-            const response = await axios.get(`${API_BASE_URL}/bots/config`);
+            const response = await api.get(`/bots/config`);
             return response.data;
         } catch (error) {
             console.error('Error fetching bot config:', error);
@@ -169,7 +168,7 @@ class BotService {
      */
     async updateBotConfig(config: BotConfig): Promise<void> {
         try {
-            await axios.put(`${API_BASE_URL}/bots/config`, config);
+            await api.put(`/bots/config`, config);
         } catch (error) {
             console.error('Error updating bot config:', error);
             throw error;
@@ -181,7 +180,7 @@ class BotService {
      */
     async testConnection(platform: 'whatsapp' | 'telegram'): Promise<boolean> {
         try {
-            const response = await axios.post(`${API_BASE_URL}/bots/test-connection`, { platform });
+            const response = await api.post(`/bots/test-connection`, { platform });
             return response.data.success;
         } catch (error) {
             console.error(`Error testing ${platform} connection:`, error);
@@ -194,7 +193,7 @@ class BotService {
      */
     async sendMessage(sessionId: string, message: string): Promise<void> {
         try {
-            await axios.post(`${API_BASE_URL}/bots/sessions/${sessionId}/message`, { message });
+            await api.post(`/bots/sessions/${sessionId}/message`, { message });
         } catch (error) {
             console.error('Error sending message:', error);
             throw error;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FileText, AlertTriangle, Bell, TrendingUp, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import api from '../../api/client';
 
 export const UserDashboard: React.FC = () => {
     const [user, setUser] = useState<any>(null);
@@ -19,9 +20,9 @@ export const UserDashboard: React.FC = () => {
 
                 // Fetch user's reports to calculate stats
                 try {
-                    const response = await fetch(`http://localhost:8000/api/reports/user/${parsed.user.id}`);
-                    if (response.ok) {
-                        const reports = await response.json();
+                    const response = await api.get(`/reports/user/${parsed.user.id}`);
+                    if (response.data) {
+                        const reports = response.data;
                         const verifiedCount = reports.filter((r: any) => r.verification_status === 'verified').length;
 
                         setStats({

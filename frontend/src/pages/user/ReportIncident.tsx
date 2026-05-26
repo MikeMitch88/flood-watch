@@ -4,7 +4,7 @@ import { MapPin, AlertTriangle, Loader2, Navigation } from 'lucide-react';
 import { geolocationService } from '../../services/GeolocationService';
 import { Button } from '../../components/Button';
 import toast from 'react-hot-toast';
-import axios from 'axios';
+import api from '../../api/client';
 
 export const ReportIncident: React.FC = () => {
     const navigate = useNavigate();
@@ -75,7 +75,7 @@ export const ReportIncident: React.FC = () => {
             const user = session ? JSON.parse(session).user : null;
 
             // Submit to backend API with correct format
-            await axios.post('http://localhost:8000/api/reports/', {
+            await api.post('/reports/', {
                 user_id: user?.id || 'anonymous',
                 location: {
                     lat: location.lat,
