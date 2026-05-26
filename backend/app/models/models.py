@@ -109,7 +109,7 @@ class User(Base):
     __tablename__ = "users"
     
     id = Column(String(36), primary_key=True, default=generate_uuid)
-    phone_number = Column(String(20), unique=True, nullable=False, index=True)
+    phone_number = Column(String(50), unique=True, nullable=False, index=True)
     platform = Column(Enum(PlatformType), nullable=False)
     platform_id = Column(String(100), unique=True, nullable=False, index=True)
     language_code = Column(String(10), default="en")

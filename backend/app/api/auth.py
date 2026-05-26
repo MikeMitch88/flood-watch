@@ -66,7 +66,7 @@ async def login(
     """Admin login"""
     # Find user
     admin_user = db.query(AdminUser).filter(
-        AdminUser.username == credentials.username
+        (AdminUser.username == credentials.username) | (AdminUser.email == credentials.username)
     ).first()
     
     if not admin_user or not verify_password(credentials.password, admin_user.password_hash):
