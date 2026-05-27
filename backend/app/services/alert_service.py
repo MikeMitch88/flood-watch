@@ -199,10 +199,24 @@ class AlertService:
                     delivered = True
                     delivery_stats['telegram'] += 1
             
-            # Fallback to SMS (if configured)
+            # Fallback to SMS via Africa's Talking (if configured)
+            if not delivered and user.phone_number:
+                try:
+                    import africastalking
+                    from app.config import get_settings
+                    _settings = get_settings()
+                    _at_user = getattr(_settings, 'AFRICAS_TALKING_USERNAME', None)
+                    _at_key = getattr(_settings, 'AFRICAS_TALKING_API_KEY', None)
+                    if _at_user and _at_key and _at_key != 'your_africastalking_api_key':
+                        africastalking.initialize(_at_user, _at_key)
+                        at_sms = africastalking.SMS
+                        at_sms.send(message, [user.phone_number])
+                        delivered = True
+                        delivery_stats['sms'] += 1
+                except Exception as sms_err:
+                    print(f"⚠️ SMS fallback failed for {user.phone_number}: {sms_err}")
+
             if not delivered:
-                # TODO: Implement Twilio SMS
-                # success = send_sms(user.phone_number, message)
                 delivery_stats['failed'] += 1
             
             # Update recipient status

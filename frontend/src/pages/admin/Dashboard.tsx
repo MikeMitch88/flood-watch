@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { analyticsAPI, incidentsAPI } from '../../api/client';
+import api from '../../api/client';
 import {
     AlertCircle, FileText, Users, TrendingUp, Activity, Bell, MapPin,
-    Zap, ArrowUp, ArrowDown, Sparkles, BarChart3
+    Zap, ArrowUp, ArrowDown, Sparkles, BarChart3, Radio
 } from 'lucide-react';
 import IncidentMap from '../../components/IncidentMap';
 import { AIInsights } from '../../components/admin/AIInsights';
@@ -22,6 +23,7 @@ export default function Dashboard() {
     const [stats, setStats] = useState<any>(null);
     const [incidents, setIncidents] = useState<any[]>([]);
     const [trendData, setTrendData] = useState<any[]>([]);
+    const [smsMetrics, setSmsMetrics] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -29,11 +31,13 @@ export default function Dashboard() {
             analyticsAPI.getSummary(),
             incidentsAPI.getAll({ status: 'active' }),
             analyticsAPI.getReportsByDate(30),
+            api.get('/alerts/sms/metrics').catch(() => ({ data: null })),
         ])
-            .then(([statsRes, incidentsRes, trendsRes]) => {
+            .then(([statsRes, incidentsRes, trendsRes, smsRes]) => {
                 setStats(statsRes.data);
                 setIncidents(incidentsRes.data.slice(0, 5));
                 setTrendData(trendsRes.data);
+                setSmsMetrics(smsRes.data);
                 setLoading(false);
             })
             .catch((error) => {
@@ -100,7 +104,7 @@ export default function Dashboard() {
             </div>
 
             {/* Enhanced Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                 <EnhancedStatCard
                     icon={FileText}
                     label="Total Reports"
@@ -140,6 +144,16 @@ export default function Dashboard() {
                     gradient="from-cyan-500 via-sky-400 to-aqua-400"
                     iconBg="from-sky-500 to-aqua-600"
                     glowColor="sky-500"
+                />
+                <EnhancedStatCard
+                    icon={Radio}
+                    label="SMS Alerts (AT)"
+                    value={smsMetrics?.sms_sent_today || 0}
+                    change={smsMetrics?.delivery_rate ? Math.round(smsMetrics.delivery_rate) : 99}
+                    changeLabel={`${smsMetrics?.active_campaigns || 0} campaigns active`}
+                    gradient="from-red-600 via-red-500 to-orange-500"
+                    iconBg="from-red-500 to-orange-600"
+                    glowColor="red-500"
                 />
             </div>
 

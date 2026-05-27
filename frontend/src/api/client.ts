@@ -80,4 +80,20 @@ export const usersAPI = {
         api.put(`/users/${id}/credibility`, { adjustment }),
 };
 
+export const smsAPI = {
+    broadcast: (data: { region: string; message: string }) =>
+        api.post('/alerts/sms/broadcast', data),
+    getMetrics: () => api.get('/alerts/sms/metrics'),
+    getReports: (limit?: number) =>
+        api.get('/alerts/sms/reports', { params: { limit } }),
+    getIncidents: (limit?: number) =>
+        api.get('/alerts/sms/incidents', { params: { limit } }),
+    promoteReport: (reportId: string) =>
+        api.post(`/alerts/sms/reports/${reportId}/promote`),
+    getWardens: () => api.get('/alerts/sms/wardens'),
+    addWarden: (data: { name: string; phone_number: string; region?: string }) =>
+        api.post('/alerts/sms/wardens', data),
+};
+
 export default api;
+
