@@ -20,9 +20,15 @@ with engine.connect() as conn:
     try:
         conn.execute(text("ALTER TYPE incidentsource ADD VALUE IF NOT EXISTS 'warden';"))
         conn.execute(text("ALTER TYPE incidentsource ADD VALUE IF NOT EXISTS 'public_cluster';"))
+        conn.execute(text("ALTER TYPE incidentsource ADD VALUE IF NOT EXISTS 'system';"))
+        conn.execute(text("ALTER TYPE incidentsource ADD VALUE IF NOT EXISTS 'SYSTEM';"))
         print("Successfully updated incidentsource ENUM.")
     except Exception as e:
         print(f"Enum update incidentsource skipped or failed: {e}")
+
+    # Print existing enum values to debug
+    res = conn.execute(text("SELECT enumlabel FROM pg_enum WHERE enumtypid = 'incidentsource'::regtype")).fetchall()
+    print("incidentsource enum values:", [r[0] for r in res])
 
     # 2. Add new enum values to smsreportstatus (create type if not exists)
     try:
@@ -40,9 +46,26 @@ with engine.connect() as conn:
     except Exception as e:
         print(f"Enum update smsreportstatus skipped or failed: {e}")
 
+    # Commit enum changes BEFORE using them as DEFAULT in ALTER TABLE
     conn.commit()
 
-# 3. Create missing tables
+    # 3. Add missing columns to existing tables
+    try:
+        conn.execute(text("ALTER TABLE incidents ADD COLUMN IF NOT EXISTS source incidentsource DEFAULT 'SYSTEM';"))
+        print("Successfully added 'source' column to incidents table.")
+    except Exception as e:
+        print(f"Failed to add 'source' column: {e}")
+        try:
+            conn.commit() # rollback any aborted transaction implicitly if needed by starting fresh
+            # fallback
+            conn.execute(text("ALTER TABLE incidents ADD COLUMN IF NOT EXISTS source incidentsource DEFAULT 'system';"))
+            print("Added with 'system' default.")
+        except Exception as e2:
+            print(f"Failed fallback: {e2}")
+        
+    conn.commit()
+
+# 4. Create missing tables
 from app.models.models import Base
 print("Creating any missing tables (like sms_reports, trusted_wardens)...")
 Base.metadata.create_all(bind=engine)
