@@ -83,7 +83,10 @@ async def whatsapp_webhook(
             )
         
         # Send response
-        whatsapp.send_message(user_id, response)
+        if isinstance(response, dict):
+            whatsapp.send_message(user_id, response.get("text", ""))
+        else:
+            whatsapp.send_message(user_id, response)
         
         return {"status": "success"}
         
@@ -184,7 +187,10 @@ async def telegram_webhook(request: Request):
             print(f"Response: {response}")
             
             # Send response
-            telegram.send_message(user_id, response)
+            if isinstance(response, dict):
+                telegram.send_message(user_id, response.get("text", ""), reply_markup=response.get("reply_markup"))
+            else:
+                telegram.send_message(user_id, response)
             print("Message sent successfully")
             print("=" * 60)
             

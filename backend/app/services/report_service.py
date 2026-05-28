@@ -109,10 +109,14 @@ class ReportService:
         severity: Optional[SeverityLevel] = None,
         user_id: Optional[str] = None,
         start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
+        end_date: Optional[datetime] = None,
+        organization_id: Optional[str] = None
     ) -> List[Report]:
         """Get reports with filtering"""
         query = db.query(Report)
+        
+        if organization_id:
+            query = query.filter(Report.organization_id == organization_id)
         
         if status:
             query = query.filter(Report.verification_status == status)
@@ -132,11 +136,12 @@ class ReportService:
         return query.order_by(Report.created_at.desc()).offset(skip).limit(limit).all()
     
     @staticmethod
-    def get_pending_reports(db: Session, limit: int = 50) -> List[Report]:
+    def get_pending_reports(db: Session, limit: int = 50, organization_id: Optional[str] = None) -> List[Report]:
         """Get all pending reports awaiting verification"""
-        return db.query(Report).filter(
-            Report.verification_status == VerificationStatus.pending
-        ).order_by(Report.created_at.desc()).limit(limit).all()
+        query = db.query(Report).filter(Report.verification_status == VerificationStatus.pending)
+        if organization_id:
+            query = query.filter(Report.organization_id == organization_id)
+        return query.order_by(Report.created_at.desc()).limit(limit).all()
     
     @staticmethod
     def find_nearby_reports(
@@ -208,10 +213,14 @@ class ReportService:
     def get_reports_count(
         db: Session,
         status: Optional[VerificationStatus] = None,
-        severity: Optional[SeverityLevel] = None
+        severity: Optional[SeverityLevel] = None,
+        organization_id: Optional[str] = None
     ) -> int:
         """Get count of reports with filters"""
         query = db.query(func.count(Report.id))
+        
+        if organization_id:
+            query = query.filter(Report.organization_id == organization_id)
         
         if status:
             query = query.filter(Report.verification_status == status)

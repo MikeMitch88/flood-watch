@@ -12,6 +12,8 @@ import {
     ChevronLeft,
     ChevronRight,
     MessageSquare,
+    Building,
+    ShieldCheck,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -34,6 +36,8 @@ const navItems: NavItem[] = [
     { name: 'Analytics', path: '/admin/analytics', icon: TrendingUp },
     { name: 'Bots', path: '/admin/bots', icon: MessageSquare },
     { name: 'AI Insights', path: '/admin/ai-insights', icon: Brain, badge: 'NEW' },
+    { name: 'County Operations', path: '/admin/county-ops', icon: Building },
+    { name: 'Insurance Analytics', path: '/admin/insurance', icon: ShieldCheck, badge: 'PRO' },
     { name: 'Settings', path: '/admin/settings', icon: Settings },
     { name: 'Users', path: '/admin/users', icon: Users, requiredRole: ['SUPER_ADMIN'] },
 ];

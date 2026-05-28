@@ -95,5 +95,12 @@ export const smsAPI = {
         api.post('/alerts/sms/wardens', data),
 };
 
+export const exportAPI = {
+    getIncidentsCSV: () => `${api.defaults.baseURL}/export/incidents/csv`,
+    getHotspotsCSV: () => `${api.defaults.baseURL}/export/hotspots/csv`,
+    getIncidentsJSON: () => `${api.defaults.baseURL}/export/incidents/json`,
+    getHotspotsJSON: () => `${api.defaults.baseURL}/export/hotspots/json`,
+};
+
 export default api;
 

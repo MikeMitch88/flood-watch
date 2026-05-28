@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from app.database import get_db
 from app.schemas import AdminLogin, AdminUserCreate, AdminUserResponse, Token
-from app.models import AdminUser
+from app.models import AdminUser, UserRole
 from app.auth import verify_password, get_password_hash, create_access_token, decode_access_token
 
 router = APIRouter()
@@ -83,7 +83,12 @@ async def login(
     
     # Create access token
     access_token = create_access_token(
-        data={"sub": admin_user.username, "user_id": admin_user.id}
+        data={
+            "sub": admin_user.username, 
+            "user_id": admin_user.id,
+            "role": admin_user.role,
+            "organization_id": admin_user.organization_id
+        }
     )
     
     return {"access_token": access_token, "token_type": "bearer"}
@@ -120,6 +125,18 @@ async def get_current_admin(
         )
     
     return admin_user
+
+
+def require_role(roles: list[UserRole]):
+    """Dependency factory for checking user roles"""
+    async def role_checker(current_admin: AdminUser = Depends(get_current_admin)):
+        if current_admin.role not in roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Operation not permitted"
+            )
+        return current_admin
+    return role_checker
 
 
 @router.get("/me", response_model=AdminUserResponse)

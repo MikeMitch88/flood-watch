@@ -200,25 +200,28 @@ class IncidentService:
         return incident
     
     @staticmethod
-    def get_active_incidents(db: Session, limit: int = 100) -> List[Incident]:
+    def get_active_incidents(db: Session, limit: int = 100, organization_id: Optional[str] = None) -> List[Incident]:
         """Get all active incidents"""
-        return db.query(Incident).filter(
-            Incident.status == IncidentStatus.active
-        ).order_by(Incident.created_at.desc()).limit(limit).all()
+        query = db.query(Incident).filter(Incident.status == IncidentStatus.active)
+        if organization_id:
+            query = query.filter(Incident.organization_id == organization_id)
+        return query.order_by(Incident.created_at.desc()).limit(limit).all()
     
     @staticmethod
-    def get_all_incidents(db: Session, skip: int = 0, limit: int = 100) -> List[Incident]:
+    def get_all_incidents(db: Session, skip: int = 0, limit: int = 100, organization_id: Optional[str] = None) -> List[Incident]:
         """Get ALL incidents regardless of status"""
-        return db.query(Incident).order_by(
-            Incident.created_at.desc()
-        ).offset(skip).limit(limit).all()
+        query = db.query(Incident)
+        if organization_id:
+            query = query.filter(Incident.organization_id == organization_id)
+        return query.order_by(Incident.created_at.desc()).offset(skip).limit(limit).all()
     
     @staticmethod
-    def get_incidents_by_status(db: Session, status: IncidentStatus, skip: int = 0, limit: int = 100) -> List[Incident]:
+    def get_incidents_by_status(db: Session, status: IncidentStatus, skip: int = 0, limit: int = 100, organization_id: Optional[str] = None) -> List[Incident]:
         """Get incidents filtered by specific status"""
-        return db.query(Incident).filter(
-            Incident.status == status
-        ).order_by(Incident.created_at.desc()).offset(skip).limit(limit).all()
+        query = db.query(Incident).filter(Incident.status == status)
+        if organization_id:
+            query = query.filter(Incident.organization_id == organization_id)
+        return query.order_by(Incident.created_at.desc()).offset(skip).limit(limit).all()
     
     @staticmethod
     def get_incidents_in_bounds(
@@ -226,14 +229,16 @@ class IncidentService:
         north: float,
         south: float,
         east: float,
-        west: float
+        west: float,
+        organization_id: Optional[str] = None
     ) -> List[Incident]:
         """Get incidents within map bounds (for map view)"""
         # Simplified bounding box query
         # In production, use ST_MakeEnvelope and ST_Intersects
-        return db.query(Incident).filter(
-            Incident.status.in_([IncidentStatus.active, IncidentStatus.monitoring])
-        ).all()
+        query = db.query(Incident).filter(Incident.status.in_([IncidentStatus.active, IncidentStatus.monitoring]))
+        if organization_id:
+            query = query.filter(Incident.organization_id == organization_id)
+        return query.all()
     
     @staticmethod
     def resolve_incident(db: Session, incident_id: str) -> Optional[Incident]:

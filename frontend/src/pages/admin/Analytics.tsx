@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { analyticsAPI } from '../../api/client';
+import { analyticsAPI, exportAPI } from '../../api/client';
 import { TrendingUp, PieChart as PieChartIcon, BarChart3, Download, Users, FileText, Sparkles, Activity } from 'lucide-react';
 import {
     AreaChart,
@@ -281,6 +281,53 @@ export default function Analytics() {
                                 <Legend verticalAlign="bottom" height={36} iconType="circle" />
                             </PieChart>
                         </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            {/* NGO Data Exports Section */}
+            <div className="glass-strong rounded-2xl p-6 border border-rain-600/30 mt-8">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl">
+                        <Download className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h3 className="text-xl font-bold text-white font-display">NGO Disaster Monitoring Exports</h3>
+                        <p className="text-rain-400 text-sm">Download raw data for external integrations and analysis.</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Incidents Export */}
+                    <div className="p-4 bg-ocean-800/50 rounded-xl border border-rain-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h4 className="text-white font-bold">Active Incidents</h4>
+                            <p className="text-rain-400 text-sm">Verified incident reports and severity data.</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <a href={exportAPI.getIncidentsCSV()} download className="px-4 py-2 bg-pink-500/20 text-pink-400 hover:bg-pink-500 hover:text-white rounded-lg font-bold transition-all text-sm">
+                                CSV
+                            </a>
+                            <a href={exportAPI.getIncidentsJSON()} download className="px-4 py-2 bg-ocean-700 text-rain-300 hover:bg-ocean-600 hover:text-white rounded-lg font-bold transition-all text-sm">
+                                JSON
+                            </a>
+                        </div>
+                    </div>
+
+                    {/* Hotspots Export */}
+                    <div className="p-4 bg-ocean-800/50 rounded-xl border border-rain-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h4 className="text-white font-bold">Predictive Hotspots</h4>
+                            <p className="text-rain-400 text-sm">AI forecasted high-risk zones.</p>
+                        </div>
+                        <div className="flex gap-2">
+                            <a href={exportAPI.getHotspotsCSV()} download className="px-4 py-2 bg-pink-500/20 text-pink-400 hover:bg-pink-500 hover:text-white rounded-lg font-bold transition-all text-sm">
+                                CSV
+                            </a>
+                            <a href={exportAPI.getHotspotsJSON()} download className="px-4 py-2 bg-ocean-700 text-rain-300 hover:bg-ocean-600 hover:text-white rounded-lg font-bold transition-all text-sm">
+                                JSON
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

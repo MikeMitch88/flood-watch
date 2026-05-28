@@ -9,6 +9,7 @@ from app.schemas import AlertCreate
 from app.services.user_service import UserService
 from app.services.incident_service import IncidentService
 from app.integrations.weather import weather_service
+from app.integrations.africas_talking import africas_talking_service
 import uuid
 
 
@@ -202,15 +203,8 @@ class AlertService:
             # Fallback to SMS via Africa's Talking (if configured)
             if not delivered and user.phone_number:
                 try:
-                    import africastalking
-                    from app.config import get_settings
-                    _settings = get_settings()
-                    _at_user = getattr(_settings, 'AFRICAS_TALKING_USERNAME', None)
-                    _at_key = getattr(_settings, 'AFRICAS_TALKING_API_KEY', None)
-                    if _at_user and _at_key and _at_key != 'your_africastalking_api_key':
-                        africastalking.initialize(_at_user, _at_key)
-                        at_sms = africastalking.SMS
-                        at_sms.send(message, [user.phone_number])
+                    result = africas_talking_service.send_sms([user.phone_number], message)
+                    if result.get('success'):
                         delivered = True
                         delivery_stats['sms'] += 1
                 except Exception as sms_err:
@@ -299,11 +293,12 @@ class AlertService:
         ).order_by(Alert.created_at.desc()).all()
     
     @staticmethod
-    def get_recent_alerts(db: Session, limit: int = 50) -> List[Alert]:
+    def get_recent_alerts(db: Session, limit: int = 50, organization_id: Optional[str] = None) -> List[Alert]:
         """Get recent alerts"""
-        return db.query(Alert).order_by(
-            Alert.created_at.desc()
-        ).limit(limit).all()
+        query = db.query(Alert)
+        if organization_id:
+            query = query.join(Incident).filter(Incident.organization_id == organization_id)
+        return query.order_by(Alert.created_at.desc()).limit(limit).all()
     
     @staticmethod
     def get_user_alerts(db: Session, user_id: str, limit: int = 20) -> List[Alert]:

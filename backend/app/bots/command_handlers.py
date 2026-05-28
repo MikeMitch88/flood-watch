@@ -228,10 +228,10 @@ class CommandHandler:
             self.session_manager.store_temp_data(user_id, platform.value, 'location', {'lat': lat, 'lon': lon})
             self.session_manager.store_temp_data(user_id, platform.value, 'address', address)
             
-            # Move to next state
-            self.session_manager.set_state(user_id, platform.value, ConversationState.AWAITING_SEVERITY.value)
+            # Move to next state (Skip severity, ask for description to auto-detect)
+            self.session_manager.set_state(user_id, platform.value, ConversationState.AWAITING_DESCRIPTION.value)
             
-            return i18n.get("report.request_severity", language)
+            return i18n.get("report.request_description", language)
         
         # No valid location found
         return i18n.get("error.invalid_location", language)
@@ -251,13 +251,46 @@ class CommandHandler:
     
     def _handle_description_input(self, user_id: str, platform: PlatformType, language: str, message_text: str) -> str:
         """Handle description input"""
+        ai_message = ""
         if message_text.lower() != 'skip':
             self.session_manager.store_temp_data(user_id, platform.value, 'description', message_text)
+            
+            # Use NLP Verifier to auto-detect severity
+            try:
+                from app.ml.nlp_verifier import nlp_verifier
+                nlp_result = nlp_verifier.analyze_report_text(message_text)
+                detected_severity = nlp_result.get("severity_assessment", "medium").lower()
+                
+                # Normalize severity
+                if "critical" in detected_severity: severity = "critical"
+                elif "high" in detected_severity: severity = "high"
+                elif "low" in detected_severity: severity = "low"
+                else: severity = "medium"
+                
+                self.session_manager.store_temp_data(user_id, platform.value, 'severity', severity)
+                ai_message = f"\n\n🤖 AI auto-detected severity: *{severity.upper()}*"
+            except Exception as e:
+                print(f"NLP error during bot flow: {e}")
+                self.session_manager.store_temp_data(user_id, platform.value, 'severity', 'medium')
+        else:
+            self.session_manager.store_temp_data(user_id, platform.value, 'severity', 'medium')
         
         # Move to photos
         self.session_manager.set_state(user_id, platform.value, ConversationState.AWAITING_PHOTOS.value)
         
-        return i18n.get("report.request_photos", language)
+        reply_text = i18n.get("report.request_photos", language) + ai_message
+        
+        if platform == PlatformType.telegram:
+            return {
+                "text": reply_text,
+                "reply_markup": {
+                    "keyboard": [[{"text": "Skip"}]],
+                    "resize_keyboard": True,
+                    "one_time_keyboard": True
+                }
+            }
+        
+        return reply_text
     
     def _handle_photos_input(self, user_id: str, platform: PlatformType, language: str, media_urls: list, message_text: Optional[str]) -> str:
         """Handle photo/video uploads"""
@@ -266,22 +299,43 @@ class CommandHandler:
             existing_images.extend(media_urls)
             self.session_manager.store_temp_data(user_id, platform.value, 'image_urls', existing_images)
             
-            return "📸 Photo received. Send more or type 'done' to continue."
+            reply_text = "📸 Photo received. Send more or type 'done' to continue."
+            if platform == PlatformType.telegram:
+                return {
+                    "text": reply_text,
+                    "reply_markup": {
+                        "keyboard": [[{"text": "Done"}]],
+                        "resize_keyboard": True,
+                        "one_time_keyboard": True
+                    }
+                }
+            return reply_text
         
         if message_text and message_text.lower() in ['done', 'skip']:
             # Get all stored data
             location = self.session_manager.get_temp_data(user_id, platform.value, 'location')
             address = self.session_manager.get_temp_data(user_id, platform.value, 'address')
-            severity = self.session_manager.get_temp_data(user_id, platform.value, 'severity')
+            severity = self.session_manager.get_temp_data(user_id, platform.value, 'severity') or 'medium'
             description = self.session_manager.get_temp_data(user_id, platform.value, 'description') or "No description provided"
             
             # Move to confirmation
             self.session_manager.set_state(user_id, platform.value, ConversationState.AWAITING_CONFIRMATION.value)
             
-            return i18n.get("report.confirm_submission", language,
+            reply_text = i18n.get("report.confirm_submission", language,
                           location=address,
                           severity=severity.upper(),
                           description=description)
+                          
+            if platform == PlatformType.telegram:
+                return {
+                    "text": reply_text,
+                    "reply_markup": {
+                        "keyboard": [[{"text": "Confirm"}, {"text": "Cancel"}]],
+                        "resize_keyboard": True,
+                        "one_time_keyboard": True
+                    }
+                }
+            return reply_text
         
         return "Send photos/videos or type 'done' to continue."
     
@@ -293,7 +347,7 @@ class CommandHandler:
             
             location = self.session_manager.get_temp_data(user_id, platform.value, 'location')
             address = self.session_manager.get_temp_data(user_id, platform.value, 'address')
-            severity = self.session_manager.get_temp_data(user_id, platform.value, 'severity')
+            severity = self.session_manager.get_temp_data(user_id, platform.value, 'severity') or 'medium'
             description = self.session_manager.get_temp_data(user_id, platform.value, 'description')
             image_urls = self.session_manager.get_temp_data(user_id, platform.value, 'image_urls') or []
             
@@ -313,11 +367,23 @@ class CommandHandler:
             # Clear session
             self.session_manager.clear_session(user_id, platform.value)
             
-            return i18n.get("report.submitted", language, report_id=report.id[:8])
+            reply_text = i18n.get("report.submitted", language, report_id=report.id[:8])
+            if platform == PlatformType.telegram:
+                return {
+                    "text": reply_text,
+                    "reply_markup": {"remove_keyboard": True}
+                }
+            return reply_text
         
         elif message_text.lower() == 'cancel':
             self.session_manager.clear_session(user_id, platform.value)
-            return i18n.get("report.cancelled", language)
+            reply_text = i18n.get("report.cancelled", language)
+            if platform == PlatformType.telegram:
+                return {
+                    "text": reply_text,
+                    "reply_markup": {"remove_keyboard": True}
+                }
+            return reply_text
         
         return "Please send 'confirm' to submit or 'cancel' to discard."
     

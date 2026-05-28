@@ -14,20 +14,26 @@ class TelegramAPI:
         self.base_url = f"https://api.telegram.org/bot{self.bot_token}" if self.bot_token else None
         self.enabled = bool(self.bot_token)
     
-    def send_message(self, chat_id: str, message: str, parse_mode: str = "Markdown") -> bool:
+    def send_message(self, chat_id: str, message: str, parse_mode: str = "Markdown", reply_markup: Optional[Dict[str, Any]] = None) -> bool:
         """Send text message via Telegram"""
         if not self.enabled:
             print(f"[Telegram Dev Mode] Would send to {chat_id}: {message}")
+            if reply_markup:
+                print(f"[Telegram Dev Mode] With keyboard: {reply_markup}")
             return True
         
         try:
+            payload = {
+                "chat_id": chat_id,
+                "text": message,
+                "parse_mode": parse_mode
+            }
+            if reply_markup:
+                payload["reply_markup"] = reply_markup
+                
             response = requests.post(
                 f"{self.base_url}/sendMessage",
-                json={
-                    "chat_id": chat_id,
-                    "text": message,
-                    "parse_mode": parse_mode
-                },
+                json=payload,
                 timeout=10
             )
             

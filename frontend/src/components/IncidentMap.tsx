@@ -17,12 +17,14 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 interface IncidentMapProps {
     incidents: any[];
+    predictiveHotspots?: any[];
     center?: [number, number];
     zoom?: number;
 }
 
 export default function IncidentMap({
     incidents,
+    predictiveHotspots = [],
     center = [-1.2921, 36.8219], // Nairobi default 
     zoom = 12,
 }: IncidentMapProps) {
@@ -95,6 +97,42 @@ export default function IncidentMap({
                             </div>
                         </Popup>
                     </Marker>
+                </div>
+            ))}
+
+            {/* Predictive Hotspots */}
+            {predictiveHotspots.map((hotspot, idx) => (
+                <div key={`hotspot-${idx}`}>
+                    <Circle
+                        center={[hotspot.lat, hotspot.lon]}
+                        radius={(hotspot.radius_km || 2) * 1000}
+                        pathOptions={{
+                            color: '#9333ea', // purple-600
+                            fillColor: '#a855f7', // purple-500
+                            fillOpacity: 0.15,
+                            dashArray: '10, 10', // Dotted circle to indicate prediction
+                            weight: 2
+                        }}
+                    >
+                        <Popup>
+                            <div className="p-2">
+                                <h3 className="font-bold text-lg mb-2 text-purple-600">
+                                    AI Predictive Hotspot
+                                </h3>
+                                <div className="space-y-1 text-sm">
+                                    <p>
+                                        <strong>Risk Score:</strong> {hotspot.risk_score ? hotspot.risk_score.toFixed(1) : 'N/A'}%
+                                    </p>
+                                    <p>
+                                        <strong>Elevation:</strong> {hotspot.elevation ? hotspot.elevation.toFixed(1) : 'Unknown'} m
+                                    </p>
+                                    <p>
+                                        <strong>Projected Radius:</strong> {hotspot.radius_km || 2} km
+                                    </p>
+                                </div>
+                            </div>
+                        </Popup>
+                    </Circle>
                 </div>
             ))}
         </MapContainer>

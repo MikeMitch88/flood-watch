@@ -124,6 +124,7 @@ class TrustedWarden(Base):
     name = Column(String(255), nullable=False)
     phone_number = Column(String(50), unique=True, nullable=False, index=True)
     region = Column(String(255))
+    organization_id = Column(String(36), ForeignKey("organizations.id"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -177,6 +178,7 @@ class Report(Base):
     verification_status = Column(Enum(VerificationStatus), default=VerificationStatus.pending, index=True)
     ai_confidence_score = Column(Float)
     community_verifications = Column(Integer, default=0)
+    organization_id = Column(String(36), ForeignKey("organizations.id"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     verified_at = Column(DateTime(timezone=True))
     
@@ -198,6 +200,7 @@ class Incident(Base):
     status = Column(Enum(IncidentStatus), default=IncidentStatus.active, index=True)
     report_count = Column(Integer, default=0)
     affected_population_estimate = Column(Integer)
+    organization_id = Column(String(36), ForeignKey("organizations.id"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     resolved_at = Column(DateTime(timezone=True))
     

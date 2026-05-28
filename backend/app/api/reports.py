@@ -128,7 +128,8 @@ async def get_reports(
         limit=limit,
         status=status,
         severity=severity,
-        user_id=user_id
+        user_id=user_id,
+        organization_id=current_admin.organization_id
     )
     return reports
 
@@ -140,7 +141,7 @@ async def get_pending_reports(
     current_admin: AdminUser = Depends(get_current_admin)
 ):
     """Get pending reports awaiting verification (admin only)"""
-    reports = ReportService.get_pending_reports(db, limit=limit)
+    reports = ReportService.get_pending_reports(db, limit=limit, organization_id=current_admin.organization_id)
     return reports
 
 
@@ -167,12 +168,13 @@ async def update_report(
     current_admin: AdminUser = Depends(get_current_admin)
 ):
     """Update a report (admin only)"""
-    report = ReportService.update_report(db, report_id, report_update)
+    report = ReportService.get_report_by_id(db, report_id)
     if not report:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Report not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    if current_admin.organization_id and report.organization_id != current_admin.organization_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to update this report")
+        
+    report = ReportService.update_report(db, report_id, report_update)
     return report
 
 
@@ -183,12 +185,13 @@ async def verify_report(
     current_admin: AdminUser = Depends(get_current_admin)
 ):
     """Verify a report as legitimate (admin only)"""
-    report = ReportService.verify_report(db, report_id)
+    report = ReportService.get_report_by_id(db, report_id)
     if not report:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Report not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    if current_admin.organization_id and report.organization_id != current_admin.organization_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to verify this report")
+        
+    report = ReportService.verify_report(db, report_id)
     
     # Trigger incident creation/update
     try:
@@ -216,12 +219,13 @@ async def reject_report(
     current_admin: AdminUser = Depends(get_current_admin)
 ):
     """Reject a report as false/spam (admin only)"""
-    report = ReportService.reject_report(db, report_id)
+    report = ReportService.get_report_by_id(db, report_id)
     if not report:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Report not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    if current_admin.organization_id and report.organization_id != current_admin.organization_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to reject this report")
+        
+    report = ReportService.reject_report(db, report_id)
     
     # TODO: Update user credibility score
     

@@ -10,7 +10,7 @@ from app.config import get_settings
 from app.database import engine, Base, init_db
 
 # Import routers (will create these next)
-from app.api import auth, reports, incidents, users, alerts, analytics, webhooks, public_api, bots, sms
+from app.api import auth, reports, incidents, users, alerts, analytics, webhooks, public_api, bots, sms, export
 
 settings = get_settings()
 
@@ -131,7 +131,10 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware
 cors_origins = settings.cors_origins_list
-print(f"🌐 CORS allowed origins: {cors_origins}")
+if settings.ENVIRONMENT != "production":
+    print(f"[INFO] CORS allowed origins: {cors_origins}")
+else:
+    print(f"[INFO] CORS configured for production with explicit origins")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
@@ -212,6 +215,7 @@ app.include_router(webhooks.router, prefix="/api/webhooks", tags=["Webhooks"])
 app.include_router(bots.router, prefix="/api/bots", tags=["Bots"])
 app.include_router(public_api.router, prefix="/api/public", tags=["Public API"])
 app.include_router(sms.router, prefix="/api/alerts/sms", tags=["SMS Alerts"])
+app.include_router(export.router, prefix="/api/export", tags=["Export"])
 
 
 @app.exception_handler(Exception)

@@ -4,7 +4,7 @@ import { analyticsAPI, incidentsAPI } from '../../api/client';
 import api from '../../api/client';
 import {
     AlertCircle, FileText, Users, TrendingUp, Activity, Bell, MapPin,
-    Zap, ArrowUp, ArrowDown, Sparkles, BarChart3, Radio
+    Zap, ArrowUp, ArrowDown, Sparkles, BarChart3, Radio, ShieldAlert
 } from 'lucide-react';
 import IncidentMap from '../../components/IncidentMap';
 import { AIInsights } from '../../components/admin/AIInsights';
@@ -24,6 +24,7 @@ export default function Dashboard() {
     const [incidents, setIncidents] = useState<any[]>([]);
     const [trendData, setTrendData] = useState<any[]>([]);
     const [smsMetrics, setSmsMetrics] = useState<any>(null);
+    const [predictiveHotspots, setPredictiveHotspots] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -32,12 +33,14 @@ export default function Dashboard() {
             incidentsAPI.getAll({ status: 'active' }),
             analyticsAPI.getReportsByDate(30),
             api.get('/alerts/sms/metrics').catch(() => ({ data: null })),
+            api.get('/analytics/geographic').catch(() => ({ data: { predictive_hotspots: [] } })),
         ])
-            .then(([statsRes, incidentsRes, trendsRes, smsRes]) => {
+            .then(([statsRes, incidentsRes, trendsRes, smsRes, geoRes]) => {
                 setStats(statsRes.data);
                 setIncidents(incidentsRes.data.slice(0, 5));
                 setTrendData(trendsRes.data);
                 setSmsMetrics(smsRes.data);
+                setPredictiveHotspots(geoRes.data.predictive_hotspots || []);
                 setLoading(false);
             })
             .catch((error) => {
@@ -104,7 +107,7 @@ export default function Dashboard() {
             </div>
 
             {/* Enhanced Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
                 <EnhancedStatCard
                     icon={FileText}
                     label="Total Reports"
@@ -154,6 +157,16 @@ export default function Dashboard() {
                     gradient="from-red-600 via-red-500 to-orange-500"
                     iconBg="from-red-500 to-orange-600"
                     glowColor="red-500"
+                />
+                <EnhancedStatCard
+                    icon={ShieldAlert}
+                    label="Impact Score"
+                    value={`${stats?.infrastructure_impact_score || 0}/100`}
+                    change={0}
+                    changeLabel="Infrastructure Risk"
+                    gradient="from-purple-600 via-purple-500 to-pink-500"
+                    iconBg="from-purple-500 to-pink-600"
+                    glowColor="purple-500"
                 />
             </div>
 
@@ -235,7 +248,7 @@ export default function Dashboard() {
                             </span>
                         </div>
                         <div className="h-[320px] rounded-2xl overflow-hidden ring-2 ring-ocean-700/50">
-                            <IncidentMap incidents={incidents} />
+                            <IncidentMap incidents={incidents} predictiveHotspots={predictiveHotspots} />
                         </div>
                     </div>
                 </div>

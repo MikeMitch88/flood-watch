@@ -11,6 +11,9 @@ import {
     X,
     Waves,
     Zap,
+    Settings,
+    Users,
+    MessageSquare
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -25,6 +28,11 @@ export default function AdminLayout() {
         { name: 'Incidents', href: '/admin/incidents', icon: AlertCircle },
         { name: 'Alerts', href: '/admin/alerts', icon: Bell },
         { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+        ...(user?.role === 'admin' ? [
+            { name: 'Users', href: '/admin/users', icon: Users },
+            { name: 'Bots', href: '/admin/bots', icon: MessageSquare },
+            { name: 'Settings', href: '/admin/settings', icon: Settings },
+        ] : []),
     ];
 
     const isActive = (path: string) => {
@@ -90,7 +98,7 @@ export default function AdminLayout() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="text-white font-medium truncate">{user?.email}</div>
-                                    <div className="text-xs text-gray-400">Administrator</div>
+                                    <div className="text-xs text-gray-400 capitalize">{user?.role || 'Administrator'}</div>
                                 </div>
                             </div>
                         </div>

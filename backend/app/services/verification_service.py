@@ -4,6 +4,7 @@ from datetime import datetime
 from app.models import Report, Verification, VerificationType, VerificationResult, SeverityLevel, VerificationStatus
 from app.schemas import AIVerificationResult
 from app.ml.flood_detector import flood_detector
+from app.ml.nlp_verifier import nlp_verifier
 from app.integrations.weather import weather_service
 from app.services.report_service import ReportService
 from app.services.user_service import UserService
@@ -35,29 +36,45 @@ class VerificationService:
         
         # Initialize verification scores
         scores = {
-            'ai': 0.0,
+            'ai_image': 0.0,
+            'nlp': 0.0,
             'weather': 0.0,
             'duplicate': 0.0,
+            'user_cred': 0.0,
             'overall': 0.0
         }
         
-        # 1. AI Image Analysis (40% weight)
-        ai_result = VerificationService._verify_with_ai(db, report)
-        scores['ai'] = ai_result['confidence'] if ai_result else 0.0
+        # 1. AI Image Analysis (25% weight)
+        ai_image_result = VerificationService._verify_with_ai(db, report)
+        scores['ai_image'] = ai_image_result['confidence'] if ai_image_result else 0.0
         
-        # 2. Weather Correlation (30% weight)
+        # 2. NLP Text Analysis (25% weight)
+        nlp_result = VerificationService._verify_with_nlp(db, report)
+        scores['nlp'] = nlp_result['confidence'] if nlp_result else 0.0
+        
+        # 3. Weather Correlation (20% weight)
         weather_result = VerificationService._verify_with_weather(db, report)
         scores['weather'] = weather_result['correlation_confidence'] if weather_result else 0.0
         
-        # 3. Duplicate Detection (30% weight)
+        # 4. Duplicate Detection (20% weight)
         duplicate_result = VerificationService._check_duplicates(db, report)
         scores['duplicate'] = duplicate_result['confidence']
         
+        # 5. User Credibility (10% weight)
+        user = UserService.get_user_by_id(db, report.user_id)
+        if user and user.credibility_score is not None:
+            # Normalize credibility score (assuming 0-100 scale)
+            scores['user_cred'] = min(max(user.credibility_score / 100.0, 0.0), 1.0)
+        else:
+            scores['user_cred'] = 0.5  # Neutral if unknown
+
         # Calculate weighted overall score
         scores['overall'] = (
-            scores['ai'] * 0.4 +
-            scores['weather'] * 0.3 +
-            scores['duplicate'] * 0.3
+            scores['ai_image'] * 0.25 +
+            scores['nlp'] * 0.25 +
+            scores['weather'] * 0.20 +
+            scores['duplicate'] * 0.20 +
+            scores['user_cred'] * 0.10
         )
         
         # Make verification decision
@@ -66,6 +83,7 @@ class VerificationService:
         if scores['overall'] >= threshold:
             decision = VerificationStatus.verified
             ReportService.verify_report(db, report_id, scores['overall'])
+            VerificationService.update_user_credibility(db, report.user_id, True)
         elif scores['overall'] >= 0.4:
             # Medium confidence - request community verification
             decision = VerificationStatus.pending
@@ -73,17 +91,47 @@ class VerificationService:
         else:
             # Low confidence - flag for manual review
             decision = VerificationStatus.flagged
+            # If extremely low, we penalize user
+            if scores['overall'] < 0.2:
+                VerificationService.update_user_credibility(db, report.user_id, False)
         
         return {
             'report_id': report_id,
             'decision': decision.value,
             'confidence': scores['overall'],
             'scores_breakdown': scores,
-            'ai_result': ai_result,
+            'ai_image_result': ai_image_result,
+            'nlp_result': nlp_result,
             'weather_result': weather_result,
             'duplicate_result': duplicate_result
         }
     
+    @staticmethod
+    def _verify_with_nlp(db: Session, report: Report) -> Optional[Dict]:
+        """Verify report using NLP text analysis on description"""
+        if not report.description:
+            return None
+            
+        try:
+            result = nlp_verifier.analyze_description(report.description)
+            if not result:
+                return None
+                
+            verification = Verification(
+                report_id=report.id,
+                verification_type=VerificationType.AI,
+                result=VerificationResult.CONFIRMED if result['is_flood_related'] else VerificationResult.UNCERTAIN,
+                confidence_score=result['confidence'],
+                notes=f"NLP Analysis: {result['reasoning']} (Severity: {result['severity']})"
+            )
+            db.add(verification)
+            db.commit()
+            
+            return result
+        except Exception as e:
+            print(f"NLP verification error: {e}")
+            return None
+
     @staticmethod
     def _verify_with_ai(db: Session, report: Report) -> Optional[Dict]:
         """Verify report using AI image analysis"""

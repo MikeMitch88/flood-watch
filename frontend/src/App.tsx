@@ -33,6 +33,8 @@ import Settings from './pages/admin/Settings';
 import ProfileSettings from './pages/admin/settings/ProfileSettings';
 import SystemSettings from './pages/admin/settings/SystemSettings';
 import BotManagement from './pages/admin/BotManagement';
+import CountyGov from './pages/admin/CountyGov';
+import InsuranceRisk from './pages/admin/InsuranceRisk';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated } = useAuthStore();
@@ -98,6 +100,8 @@ function App() {
                                     <Route path="users" element={<Users />} />
                                     <Route path="ai-insights" element={<AIInsightsPage />} />
                                     <Route path="bots" element={<BotManagement />} />
+                                    <Route path="county-ops" element={<CountyGov />} />
+                                    <Route path="insurance" element={<InsuranceRisk />} />
                                     <Route path="settings" element={<Settings />}>
                                         <Route path="profile" element={<ProfileSettings />} />
                                         <Route path="system" element={<SystemSettings />} />
