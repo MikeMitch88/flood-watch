@@ -59,6 +59,44 @@ class WeatherService:
         
         return None
     
+    def get_24h_forecast_rainfall(self, lat: float, lon: float) -> Optional[float]:
+        """Get predicted rainfall amount for the next 24 hours (mm)"""
+        if not self.enabled:
+            # Mock data for development
+            return 60.0 # Return a high value to simulate flood risk
+        
+        try:
+            response = requests.get(
+                f"{self.base_url}/forecast",
+                params={
+                    'lat': lat,
+                    'lon': lon,
+                    'appid': self.api_key,
+                    'units': 'metric'
+                },
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                total_rain = 0.0
+                # The forecast returns data in 3-hour steps
+                # 8 steps = 24 hours
+                forecast_list = data.get('list', [])[:8] 
+                
+                for step in forecast_list:
+                    # 'rain' might not exist or might not have '3h' key
+                    rain_data = step.get('rain', {})
+                    # Add rainfall from this 3h period
+                    total_rain += rain_data.get('3h', 0.0)
+                    
+                return total_rain
+                
+        except Exception as e:
+            print(f"Forecast API error: {e}")
+        
+        return None
+    
     def check_weather_alerts(self, lat: float, lon: float) -> list:
         """Check for active weather alerts in area"""
         if not self.enabled:

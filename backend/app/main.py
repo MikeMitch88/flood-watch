@@ -148,6 +148,22 @@ app.add_middleware(
 #     )
 
 
+import asyncio
+from app.services.early_warning_service import EarlyWarningService
+
+async def early_warning_loop():
+    """Background task to continuously monitor weather for early warnings"""
+    while True:
+        try:
+            # We run it in a threadpool to not block the async event loop 
+            # since SQLAlchemy queries inside run_check are synchronous
+            await asyncio.to_thread(EarlyWarningService.run_check)
+        except Exception as e:
+            print(f"Error in early warning loop: {e}")
+        
+        # Sleep for 1 hour (3600 seconds) before checking again
+        await asyncio.sleep(3600)
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize database on startup"""
@@ -156,6 +172,10 @@ async def startup_event():
         print("✅ Database initialized successfully")
     except Exception as e:
         print(f"❌ Database initialization failed: {e}")
+        
+    # Start the proactive Early Warning background task
+    asyncio.create_task(early_warning_loop())
+    print("✅ Early Warning background task started")
 
 
 @app.get("/")
