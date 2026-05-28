@@ -68,14 +68,30 @@ class EarlyWarningService:
         # For simplicity, we check if there's any active SYSTEM incident
         # in the DB. A more robust check would use PostGIS ST_DWithin.
         
-        # Basic check: Is there an active incident from the SYSTEM in the last 24h?
-        active_incident = db.query(Incident).filter(
+        # Basic check: Is there an active incident from the SYSTEM in the last 24h at this exact location?
+        active_incidents = db.query(Incident).filter(
             Incident.status == IncidentStatus.active,
             Incident.source == IncidentSource.SYSTEM
-        ).first() # In a real app, filter by distance to hotspot
+        ).all()
         
-        if active_incident:
-            logger.info(f"An active system warning already exists. Skipping duplicate.")
+        # Check if any active system incident is within roughly 50km
+        # (Using simple lat/lon bounding box for speed)
+        is_duplicate = False
+        for inc in active_incidents:
+            # Get coords from DB. Since we can't easily parse PostGIS objects without geoalchemy
+            # we just check if it's the exact same lat/lon we insert via ST_MakePoint.
+            # A proper ST_DWithin query would be better, but we will use raw SQL to check distance.
+            result = db.execute(func.ST_DistanceSphere(
+                inc.location,
+                func.ST_SetSRID(func.ST_MakePoint(hotspot["lon"], hotspot["lat"]), 4326)
+            )).scalar()
+            
+            if result is not None and result < 50000: # 50km
+                is_duplicate = True
+                break
+        
+        if is_duplicate:
+            logger.info(f"An active system warning already exists near {hotspot['name']}. Skipping duplicate.")
             return
             
         logger.warning(f"No active warning found. Creating new proactive Incident!")
