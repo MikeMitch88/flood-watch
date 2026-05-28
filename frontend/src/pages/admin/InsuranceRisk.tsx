@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { 
-    ShieldCheck, Search, Map, BarChart3, TrendingUp, AlertCircle, 
+    ShieldCheck, Search, BarChart3, 
     Home, Building2, Banknote, History, Download, ChevronRight
 } from 'lucide-react';
 import { 
